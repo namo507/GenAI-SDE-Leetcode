@@ -11,5 +11,6 @@ import { w08 } from "./w08";
 import { w09 } from "./w09";
 import { w10 } from "./w10";
 import { w11 } from "./w11";
+import { w12 } from "./w12";
 
-export const extraWeeks: ExtraWeek[] = [w01, w02, w03, w04, w05, w06, w07, w08, w09, w10, w11];
+export const extraWeeks: ExtraWeek[] = [w01, w02, w03, w04, w05, w06, w07, w08, w09, w10, w11, w12];
