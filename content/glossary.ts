@@ -1,6 +1,7 @@
 import { defineTerms } from "./helpers";
+import { glossaryExtra } from "./glossary-extra";
 
-export const glossary = defineTerms([
+const baseTerms = defineTerms([
   { slug: "big-o", term: "Big-O notation", domain: "foundations", definition: "An upper bound on how an algorithm's work grows with input size, ignoring constant factors.", seniorNote: "f(n) is O(g(n)) if f(n) <= c g(n) for all n >= n0. Say whether you mean worst, average or amortized case.", topicIds: ["w01-d02-big-o-complexity"], prerequisites: [] },
   { slug: "reproducibility", term: "Reproducibility", domain: "foundations", definition: "Getting the same result from the same inputs every time, on any machine.", seniorNote: "Needs pinned environments, versioned data, deterministic randomness and code under version control with CI.", topicIds: ["w01-d03-testing-reproducibility"], prerequisites: [] },
   { slug: "unit-test", term: "Unit test", domain: "foundations", definition: "A small automated check that one function behaves as expected, including edge cases.", topicIds: ["w01-d03-testing-reproducibility"], prerequisites: [] },
@@ -75,3 +76,6 @@ export const glossary = defineTerms([
   { slug: "psi", term: "Population stability index", domain: "mlops", definition: "A score of how much a feature's distribution shifted between a baseline and a current window.", topicIds: ["w12-d03-drift-observability"], prerequisites: [] },
   { slug: "star-method", term: "STAR method", domain: "career", definition: "Answering behavioral questions with Situation, Task, Action and Result, plus a short reflection.", topicIds: ["w16-d02-behavioral-star"], prerequisites: [] },
 ]);
+
+/** Every glossary term: the original set plus the terminology added with the expanded curriculum. */
+export const glossary = [...baseTerms, ...glossaryExtra];

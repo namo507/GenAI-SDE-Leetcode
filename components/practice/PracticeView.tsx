@@ -19,6 +19,7 @@ const TABS = [
   { id: "topic-drills", label: "Topic drills" },
   { id: "sql", label: "SQL" },
   { id: "coding", label: "Coding" },
+  { id: "concepts", label: "Concepts" },
   { id: "statistics", label: "Statistics" },
   { id: "system-design", label: "System design" },
   { id: "rag-diagnosis", label: "RAG diagnosis" },

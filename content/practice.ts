@@ -1,5 +1,6 @@
 import type { PracticeSetInput } from "@/lib/content-types";
 import { codingSet } from "./coding";
+import { conceptSet } from "./concepts";
 
 /** Shared SQLite schema and data for every SQL drill. Small enough to reason about by hand. */
 export const SQL_SETUP = `CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT NOT NULL, signup_date TEXT NOT NULL);
@@ -794,4 +795,5 @@ ORDER BY category`,
     ],
   },
   codingSet,
+  conceptSet,
 ];

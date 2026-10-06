@@ -56,6 +56,15 @@ describe("curriculum contract", () => {
     }
   });
 
+  it("ships a substantial practice bank and glossary", () => {
+    const count = (id: string, kind: string) => practiceSets.find((s) => s.id === id)?.items.filter((d) => d.kind === kind).length ?? 0;
+    expect(count("coding", "code")).toBeGreaterThanOrEqual(30);
+    expect(count("concepts", "choice")).toBeGreaterThanOrEqual(40);
+    expect(count("sql", "sql")).toBeGreaterThanOrEqual(20);
+    expect(glossary.length).toBeGreaterThanOrEqual(200);
+    expect(new Set(glossary.map((g) => g.slug)).size).toBe(glossary.length);
+  });
+
   it("rejects a topic referenced before it is taught", () => {
     const weeks = structuredClone(curriculum.weeks);
     weeks[0]!.days[0]!.topicIds = [...weeks[0]!.days[0]!.topicIds, "w02-d01-joins-and-keys"];

@@ -72,4 +72,28 @@ export const mockLoops: MockLoopInput[] = [
       { kind: "behavioral", title: "Behavioral", minutes: 30, topicIds: ["w16-d02-behavioral-star"], questions: 2 },
     ],
   },
+  {
+    id: "data-analyst-loop",
+    title: "Data analyst loop",
+    roles: ["data-analyst"],
+    summary: "SQL, a metrics and root-cause case, statistics for experiments, and behavioral.",
+    rounds: [
+      { kind: "sql", title: "SQL: joins, windows and conditional aggregation", minutes: 35, topicIds: ["w02-d01-joins-and-keys", "w02-d02-window-functions", "w02-d01-sql-query-order"], questions: 2 },
+      { kind: "ml", title: "Metrics and root-cause case", minutes: 35, topicIds: ["w06-d02-kpi-root-cause", "w06-d02-metrics-funnels", "w06-d03-cohort-retention"], questions: 2 },
+      { kind: "statistics", title: "Experiment readout", minutes: 30, topicIds: ["w05-d02-hypothesis-testing", "w05-d03-multiple-testing"], questions: 2 },
+      { kind: "behavioral", title: "Behavioral and stakeholder communication", minutes: 25, topicIds: ["w16-d02-behavioral-star", "w06-d04-visualization-storytelling"], questions: 2 },
+    ],
+  },
+  {
+    id: "cloud-platform-loop",
+    title: "Cloud and platform deep dive",
+    roles: ["sde", "ml-engineer", "data-engineer", "genai-engineer"],
+    summary: "Cloud architecture, containers and security, then a model-serving design, for platform-heavy roles.",
+    rounds: [
+      { kind: "system-design", title: "Cloud architecture and cost", minutes: 40, topicIds: ["w12-d01-cloud-fundamentals", "w12-d04-iac-cost"], questions: 2 },
+      { kind: "system-design", title: "Kubernetes, IAM and networking", minutes: 35, topicIds: ["w12-d02-containers-kubernetes", "w12-d03-cloud-networking-iam"], questions: 2 },
+      { kind: "genai", title: "Serving models: API or self-host", minutes: 35, topicIds: ["w12-d05-managed-ai-services", "w13-d04-inference-kv-cache"], questions: 2 },
+      { kind: "behavioral", title: "Behavioral", minutes: 25, topicIds: ["w16-d02-behavioral-star"], questions: 1 },
+    ],
+  },
 ];
