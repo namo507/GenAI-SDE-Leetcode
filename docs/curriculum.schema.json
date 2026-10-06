@@ -604,13 +604,13 @@
                       "default": 1,
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 20
+                      "maximum": 40
                     },
                     "rLines": {
                       "default": 1,
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 20
+                      "maximum": 40
                     },
                     "eli5": {
                       "type": "string",

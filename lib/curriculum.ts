@@ -158,8 +158,8 @@ export const CodeSampleSchema = z.object({
 export const WalkthroughStepSchema = z.object({
   python: nonEmpty,
   r: nonEmpty,
-  pythonLines: z.number().int().min(1).max(20).default(1),
-  rLines: z.number().int().min(1).max(20).default(1),
+  pythonLines: z.number().int().min(1).max(40).default(1),
+  rLines: z.number().int().min(1).max(40).default(1),
   eli5: nonEmpty,
 });
 
