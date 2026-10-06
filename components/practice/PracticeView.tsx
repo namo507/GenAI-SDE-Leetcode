@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useId, useState, useSyncExternalStore } from "react";
-import { DOMAIN_LABELS, type Domain } from "@/lib/curriculum";
+import { DIFFICULTIES, DOMAIN_LABELS, type Difficulty, type Domain } from "@/lib/curriculum";
 import type { CatalogTopic } from "@/lib/catalog";
-import type { PracticeSet } from "@/lib/content-types";
+import type { CodeProblem, PracticeSet } from "@/lib/content-types";
 import { topicMastery } from "@/lib/progress/metrics";
 import { useClientProgress } from "@/lib/progress/hooks";
 import { TabList, TabPanel } from "@/components/ui/Tabs";
 import { pct } from "@/components/ui/primitives";
 import { PracticeCard } from "./PracticeCard";
-import { ChoiceDrillCard, DesignDrillCard, NumericDrillCard, SqlDrillCard, type TopicIndex } from "./Drills";
+import { ChoiceDrillCard, DesignDrillCard, DIFFICULTY, NumericDrillCard, SqlDrillCard, type TopicIndex } from "./Drills";
+import { CodeProblemCard } from "./CodeProblemCard";
 import { ReviewSession } from "./ReviewSession";
 
 const TABS = [
@@ -88,6 +89,61 @@ function TopicDrills({ topics }: { topics: CatalogTopic[] }) {
   );
 }
 
+function CodingBank({ set, topics, topicIndex }: { set: PracticeSet | undefined; topics: CatalogTopic[]; topicIndex: TopicIndex }) {
+  const problems = (set?.items ?? []).filter((d): d is CodeProblem => d.kind === "code");
+  const patterns = [...new Set(problems.map((p) => p.pattern))].sort();
+  const [difficulty, setDifficulty] = useState<Difficulty | "all">("all");
+  const [pattern, setPattern] = useState("all");
+  const shown = problems.filter((p) => (difficulty === "all" || p.difficulty === difficulty) && (pattern === "all" || p.pattern === pattern));
+  return (
+    <div className="grid gap-6">
+      <SetIntro set={set} />
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="tp-field w-48">
+          <label htmlFor="code-difficulty" className="tp-field__label">
+            Difficulty
+          </label>
+          <select id="code-difficulty" className="tp-select" value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty | "all")}>
+            <option value="all">All levels</option>
+            {DIFFICULTIES.map((d) => (
+              <option key={d} value={d}>
+                {DIFFICULTY[d]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="tp-field w-72">
+          <label htmlFor="code-pattern" className="tp-field__label">
+            Pattern
+          </label>
+          <select id="code-pattern" className="tp-select" value={pattern} onChange={(e) => setPattern(e.target.value)}>
+            <option value="all">All patterns</option>
+            {patterns.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="pb-2 t-caption tp-muted" role="status" aria-live="polite">
+          {shown.length} of {problems.length} problems
+        </p>
+      </div>
+      <div className="grid gap-4">
+        {shown.map((p) => (
+          <CodeProblemCard key={p.id} problem={p} topics={topicIndex} />
+        ))}
+      </div>
+      <section aria-labelledby="lesson-code" className="grid gap-3">
+        <h3 id="lesson-code" className="t-heading">
+          Runnable lesson examples
+        </h3>
+        <CodingList topics={topics} />
+      </section>
+    </div>
+  );
+}
+
 function CodingList({ topics }: { topics: CatalogTopic[] }) {
   const progress = useClientProgress();
   const withCode = topics.filter((t) => t.hasCode);
@@ -145,6 +201,8 @@ export function PracticeView({ topics, sets }: { topics: CatalogTopic[]; sets: P
           return <DesignDrillCard key={d.id} drill={d} topics={topicIndex} />;
         case "choice":
           return <ChoiceDrillCard key={d.id} drill={d} topics={topicIndex} />;
+        case "code":
+          return <CodeProblemCard key={d.id} problem={d} topics={topicIndex} />;
       }
     });
 
@@ -163,7 +221,7 @@ export function PracticeView({ topics, sets }: { topics: CatalogTopic[]; sets: P
       <TabPanel idBase={idBase} value={tab} className="outline-none">
         {tab === "review" && <ReviewSession topics={topics} />}
         {tab === "topic-drills" && <TopicDrills topics={topics} />}
-        {tab === "coding" && <CodingList topics={topics} />}
+        {tab === "coding" && <CodingBank set={set("coding")} topics={topics} topicIndex={topicIndex} />}
         {tab !== "review" && tab !== "topic-drills" && tab !== "coding" && (
           <>
             <SetIntro set={set(tab)} />

@@ -1,4 +1,5 @@
 import type { PracticeSetInput } from "@/lib/content-types";
+import { codingSet } from "./coding";
 
 /** Shared SQLite schema and data for every SQL drill. Small enough to reason about by hand. */
 export const SQL_SETUP = `CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, country TEXT NOT NULL, signup_date TEXT NOT NULL);
@@ -203,6 +204,191 @@ ORDER BY c.name, o.order_date, o.id`,
           ["Linus", 105, 6],
           ["Margaret", 108, null],
         ],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-having-repeat",
+        title: "Repeat customers worth keeping",
+        prompt: "Return name, orders and revenue for customers with at least 2 orders and at least 50 in revenue, sorted by name.",
+        topicIds: ["w02-d01-sql-query-order"],
+        difficulty: "beginner",
+        hints: ["WHERE filters rows before grouping; HAVING filters groups after.", "Both conditions are about the group, so both go in HAVING."],
+        setup: SQL_SETUP,
+        solution: `SELECT c.name, COUNT(*) AS orders, SUM(o.amount) AS revenue
+FROM customers c JOIN orders o ON o.customer_id = c.id
+GROUP BY c.id, c.name
+HAVING COUNT(*) >= 2 AND SUM(o.amount) >= 50
+ORDER BY c.name`,
+        expectedColumns: ["name", "orders", "revenue"],
+        expectedRows: [["Ada", 3, 100], ["Grace", 2, 198], ["Linus", 2, 60]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-pivot-category",
+        title: "Revenue by category as columns",
+        prompt: "For every customer with orders, return name and their revenue in books, games and electronics as three columns (0 when none), sorted by name.",
+        topicIds: ["w02-d01-sql-query-order", "w06-d02-metrics-funnels"],
+        difficulty: "intermediate",
+        hints: ["Conditional aggregation: SUM(CASE WHEN category = 'books' THEN amount ELSE 0 END).", "One row per customer, so group by the customer."],
+        setup: SQL_SETUP,
+        solution: `SELECT c.name,
+  SUM(CASE WHEN o.category = 'books' THEN o.amount ELSE 0 END) AS books,
+  SUM(CASE WHEN o.category = 'games' THEN o.amount ELSE 0 END) AS games,
+  SUM(CASE WHEN o.category = 'electronics' THEN o.amount ELSE 0 END) AS electronics
+FROM customers c JOIN orders o ON o.customer_id = c.id
+GROUP BY c.id, c.name
+ORDER BY c.name`,
+        expectedColumns: ["name", "books", "games", "electronics"],
+        expectedRows: [["Ada", 30, 20, 50], ["Grace", 0, 99, 99], ["Linus", 60, 0, 0], ["Margaret", 12.5, 0, 0]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-weekly-rollup",
+        title: "Weekly orders, customers and revenue",
+        prompt: "Using strftime('%W', order_date) as week, return week, orders, distinct customers and revenue per week, sorted by week.",
+        topicIds: ["w02-d01-sql-query-order", "w06-d02-metrics-funnels"],
+        difficulty: "beginner",
+        hints: ["COUNT(DISTINCT customer_id) counts each customer once per week.", "Group by the computed week expression or its alias."],
+        setup: SQL_SETUP,
+        solution: `SELECT strftime('%W', order_date) AS week, COUNT(*) AS orders, COUNT(DISTINCT customer_id) AS customers, SUM(amount) AS revenue
+FROM orders
+GROUP BY week
+ORDER BY week`,
+        expectedColumns: ["week", "orders", "customers", "revenue"],
+        expectedRows: [["00", 1, 1, 30], ["01", 3, 3, 134], ["02", 1, 1, 45], ["03", 3, 3, 161.5]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-dense-rank-category",
+        title: "Top 2 order amounts per category",
+        prompt: "For each category, return category, order_id, amount and rnk for orders whose amount ranks in the top 2 with DENSE_RANK (highest first). Sort by category, rnk, order_id.",
+        topicIds: ["w02-d02-window-functions"],
+        difficulty: "intermediate",
+        hints: ["DENSE_RANK leaves no gaps after ties, unlike RANK.", "Window functions cannot be filtered in the same SELECT; wrap the query."],
+        setup: SQL_SETUP,
+        solution: `SELECT category, id AS order_id, amount, rnk FROM (
+  SELECT category, id, amount, DENSE_RANK() OVER (PARTITION BY category ORDER BY amount DESC) AS rnk
+  FROM orders
+) WHERE rnk <= 2
+ORDER BY category, rnk, order_id`,
+        expectedColumns: ["category", "order_id", "amount", "rnk"],
+        expectedRows: [["books", 105, 45, 1], ["books", 101, 30, 2], ["electronics", 103, 99, 1], ["electronics", 106, 50, 2], ["games", 107, 99, 1], ["games", 102, 20, 2]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-lag-change",
+        title: "Change from the previous order",
+        prompt: "For each customer's orders in date order, return name, order_date, amount and change (amount minus the previous order's amount). Skip each customer's first order. Sort by name, order_date.",
+        topicIds: ["w02-d02-window-functions"],
+        difficulty: "intermediate",
+        hints: ["LAG(amount) OVER (PARTITION BY customer_id ORDER BY order_date, id).", "Filter out rows where the previous amount is NULL."],
+        setup: SQL_SETUP,
+        solution: `SELECT name, order_date, amount, amount - prev_amount AS change FROM (
+  SELECT c.name, o.order_date, o.amount, LAG(o.amount) OVER (PARTITION BY o.customer_id ORDER BY o.order_date, o.id) AS prev_amount
+  FROM orders o JOIN customers c ON c.id = o.customer_id
+) WHERE prev_amount IS NOT NULL
+ORDER BY name, order_date`,
+        expectedColumns: ["name", "order_date", "amount", "change"],
+        expectedRows: [["Ada", "2026-01-05", 20, -10], ["Ada", "2026-01-20", 50, 30], ["Grace", "2026-01-21", 99, 0], ["Linus", "2026-01-15", 45, 30]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-self-join-country",
+        title: "Customers who share a country",
+        prompt: "Return every pair of different customers in the same country as first, second and country, listing each pair once with the lower id first. Sort by country, first, second.",
+        topicIds: ["w02-d01-joins-and-keys"],
+        difficulty: "beginner",
+        hints: ["Join the table to itself on country.", "a.id < b.id keeps one copy of each pair and drops self-pairs."],
+        setup: SQL_SETUP,
+        solution: `SELECT a.name AS first, b.name AS second, a.country
+FROM customers a JOIN customers b ON a.country = b.country AND a.id < b.id
+ORDER BY a.country, first, second`,
+        expectedColumns: ["first", "second", "country"],
+        expectedRows: [["Grace", "Alan", "UK"], ["Ada", "Margaret", "US"]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-date-spine",
+        title: "Daily revenue with zero days filled in",
+        prompt: "Return day, orders and revenue for every day from 2026-01-01 to 2026-01-07, including days with no orders (0 orders, 0 revenue). Sort by day.",
+        topicIds: ["w02-d01-joins-and-keys", "w06-d02-metrics-funnels"],
+        difficulty: "advanced",
+        hints: ["Generate the days with a recursive CTE, then LEFT JOIN orders.", "COUNT(o.id) is 0 and SUM is NULL on empty days; wrap SUM in COALESCE."],
+        setup: SQL_SETUP,
+        solution: `WITH RECURSIVE days(day) AS (
+  SELECT '2026-01-01'
+  UNION ALL
+  SELECT date(day, '+1 day') FROM days WHERE day < '2026-01-07'
+)
+SELECT d.day, COUNT(o.id) AS orders, COALESCE(SUM(o.amount), 0) AS revenue
+FROM days d LEFT JOIN orders o ON o.order_date = d.day
+GROUP BY d.day
+ORDER BY d.day`,
+        expectedColumns: ["day", "orders", "revenue"],
+        expectedRows: [["2026-01-01", 0, 0], ["2026-01-02", 1, 30], ["2026-01-03", 0, 0], ["2026-01-04", 0, 0], ["2026-01-05", 2, 119], ["2026-01-06", 0, 0], ["2026-01-07", 0, 0]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-dedupe-latest-order",
+        title: "Latest order per customer",
+        prompt: "Return name, order_id and order_date of each customer's most recent order (the higher id wins a same-day tie), sorted by name.",
+        topicIds: ["w02-d02-window-functions", "w06-d01-data-quality-eda"],
+        difficulty: "beginner",
+        hints: ["ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC, id DESC).", "Keep rn = 1."],
+        setup: SQL_SETUP,
+        solution: `SELECT name, order_id, order_date FROM (
+  SELECT c.name, o.id AS order_id, o.order_date,
+         ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_date DESC, o.id DESC) AS rn
+  FROM orders o JOIN customers c ON c.id = o.customer_id
+) WHERE rn = 1
+ORDER BY name`,
+        expectedColumns: ["name", "order_id", "order_date"],
+        expectedRows: [["Ada", 106, "2026-01-20"], ["Grace", 107, "2026-01-21"], ["Linus", 105, "2026-01-15"], ["Margaret", 108, "2026-01-22"]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-country-aov",
+        title: "Average order value by country",
+        prompt: "Return country, orders, revenue and avg_order (revenue divided by orders, rounded to 2 decimals, NULL if no orders) for every country with customers. Sort by revenue descending, then country.",
+        topicIds: ["w02-d01-joins-and-keys", "w06-d02-kpi-root-cause"],
+        difficulty: "intermediate",
+        hints: ["Start from customers so countries without orders still appear.", "NULLIF(COUNT(o.id), 0) avoids dividing by zero."],
+        setup: SQL_SETUP,
+        solution: `SELECT c.country, COUNT(o.id) AS orders, COALESCE(SUM(o.amount), 0) AS revenue,
+       ROUND(COALESCE(SUM(o.amount), 0) / NULLIF(COUNT(o.id), 0), 2) AS avg_order
+FROM customers c LEFT JOIN orders o ON o.customer_id = c.id
+GROUP BY c.country
+ORDER BY revenue DESC, c.country`,
+        expectedColumns: ["country", "orders", "revenue", "avg_order"],
+        expectedRows: [["UK", 2, 198, 99], ["US", 4, 112.5, 28.13], ["FI", 2, 60, 30]],
+        orderMatters: true,
+      },
+      {
+        kind: "sql",
+        id: "sql-promo-share",
+        title: "Share of orders using a promotion",
+        prompt: "For each category, return category, orders, promo_orders (orders with at least one promotion code) and promo_pct (percentage, 1 decimal). Sort by category.",
+        topicIds: ["w02-d01-joins-and-keys", "w06-d02-metrics-funnels"],
+        difficulty: "intermediate",
+        hints: ["An order can have two codes; joining promotions directly would double count it.", "EXISTS counts each order at most once."],
+        setup: SQL_SETUP,
+        solution: `SELECT category, COUNT(*) AS orders,
+       SUM(CASE WHEN EXISTS (SELECT 1 FROM promotions p WHERE p.order_id = o.id) THEN 1 ELSE 0 END) AS promo_orders,
+       ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM promotions p WHERE p.order_id = o.id) THEN 1 ELSE 0 END) / COUNT(*), 1) AS promo_pct
+FROM orders o
+GROUP BY category
+ORDER BY category`,
+        expectedColumns: ["category", "orders", "promo_orders", "promo_pct"],
+        expectedRows: [["books", 4, 1, 25], ["electronics", 2, 2, 100], ["games", 2, 0, 0]],
         orderMatters: true,
       },
     ],
@@ -607,4 +793,5 @@ ORDER BY c.name, o.order_date, o.id`,
       },
     ],
   },
+  codingSet,
 ];

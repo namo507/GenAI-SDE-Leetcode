@@ -14,22 +14,25 @@ import { ConfidencePicker } from "./Confidence";
 
 export type TopicIndex = Record<string, { title: string; href: string }>;
 
-const DIFFICULTY = { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" } as const;
+export const DIFFICULTY = { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" } as const;
 
-function DrillShell({
+export function DrillShell({
   drill,
   topics,
   children,
+  badges,
 }: {
   drill: { id: string; title: string; prompt: string; difficulty: keyof typeof DIFFICULTY; hints: string[]; topicIds: string[] };
   topics: TopicIndex;
   children: ReactNode;
+  badges?: ReactNode;
 }) {
   return (
     <article className="tp-card grid gap-4" aria-labelledby={`${drill.id}-title`}>
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="tp-chip">{DIFFICULTY[drill.difficulty]}</span>
+          {badges}
           {drill.topicIds.map((id) =>
             topics[id] ? (
               <Link key={id} className="t-caption tp-link" href={topics[id].href}>
