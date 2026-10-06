@@ -112,7 +112,7 @@ export function defaultProgress(today: string = todayIso()): Progress {
   return {
     version: PROGRESS_VERSION,
     settings: {
-      roles: ["sde", "data-scientist", "ml-engineer", "genai-engineer", "data-engineer"],
+      roles: [...ROLES],
       startDate: today,
       minutesPerDay: 90,
       language: "python",

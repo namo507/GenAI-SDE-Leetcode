@@ -6,8 +6,8 @@ test("onboarding saves the plan and opens today", async ({ page }) => {
   await page.getByLabel("Data engineer").check();
   await page.getByRole("button", { name: "Start my 16 weeks" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Week 1, day 1");
-  await expect(page.getByText("Preparing for ML engineer, Data engineer")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Week 1 · Day 1");
+  await expect(page.getByText(/ML engineer · Data engineer/)).toBeVisible();
 });
 
 test("ELI5 and Senior toggle uses aria-pressed and keeps focus", async ({ page }) => {
@@ -117,7 +117,7 @@ test("day status and minutes are saved and shown on the roadmap", async ({ page 
   await page.getByRole("button", { name: "Save minutes" }).click();
   await page.goto("/roadmap");
   await expect(page.locator("#w01-d02 .tp-day")).toHaveAttribute("data-status", "done");
-  await expect(page.getByText("1 of 7 days done")).toBeVisible();
+  await expect(page.getByText("1/7 days")).toBeVisible();
 });
 
 test("settings switch theme, export progress and reject a bad import", async ({ page }) => {
@@ -158,4 +158,40 @@ test("glossary search filters terms and prerequisite links jump to the term", as
   await page.getByRole("link", { name: "Big-O notation" }).click();
   await expect(page.locator("#big-o")).toBeFocused();
   await expect(page.getByLabel("Search terms and definitions")).toHaveValue("");
+});
+
+test("command palette finds a topic and opens it", async ({ page }) => {
+  await page.goto("/dashboard");
+  await page.keyboard.press("Control+k");
+  const input = page.getByRole("combobox", { name: /Search topics/ });
+  await expect(input).toBeFocused();
+  await input.fill("sliding window");
+  await expect(page.getByRole("option").first()).toContainText("Two pointers and sliding windows");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/learn\/dsa\/sliding-window$/);
+});
+
+test("topics library filters by role and links to lessons", async ({ page }) => {
+  await page.goto("/topics");
+  await page.getByLabel("Role").selectOption("genai-engineer");
+  await expect(page.getByRole("heading", { name: "GenAI and LLMs" })).toBeVisible();
+  await page.getByLabel("Filter topics by title or summary").fill("hashing");
+  await expect(page.getByRole("heading", { name: "GenAI and LLMs" })).toBeHidden();
+  await page.getByRole("link", { name: /Arrays, strings and hashing/ }).click();
+  await expect(page).toHaveURL(/\/learn\/dsa\/hashing-patterns$/);
+});
+
+test("ELI5 code walkthrough steps through highlighted lines", async ({ page }) => {
+  await page.goto("/learn/dsa/hashing-patterns");
+  await page.getByRole("button", { name: "Explain like I'm 5" }).click();
+  const tour = page.getByRole("group", { name: /walkthrough/ });
+  await expect(tour.getByText(/Step 1 of \d+/)).toBeVisible();
+  await tour.getByRole("button", { name: "Next step" }).click();
+  await expect(tour.getByText(/Step 2 of \d+/)).toBeVisible();
+  await expect(tour.locator(".tp-tour__line[data-dim='false']").first()).toBeVisible();
+  await tour.locator(".tp-tour__code").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tour.getByText(/Step 3 of \d+/)).toBeVisible();
+  await page.getByRole("tab", { name: "R" }).click();
+  await expect(page.getByRole("group", { name: /R walkthrough/ })).toBeVisible();
 });

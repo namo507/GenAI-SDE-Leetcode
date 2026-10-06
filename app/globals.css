@@ -1,6 +1,7 @@
 @import "tailwindcss";
-@import "./tokens.css";
-@import "../design-system/components.css";
+@import "@xyflow/react/dist/base.css" layer(base);
+@import "./tokens.css" layer(base);
+@import "../design-system/components.css" layer(components);
 
 /* Expose design tokens to Tailwind utilities (bg-surface, text-ink-muted, border-border, ...). */
 @theme inline {
@@ -23,77 +24,82 @@
   --color-caution-soft: var(--caution-soft);
   --color-critical: var(--critical);
   --color-critical-soft: var(--critical-soft);
-  --font-sans: var(--font-atkinson-next), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-atkinson-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 /* next/font renames the families, so point the token stacks at its variables. */
 :root {
-  --font-sans: var(--font-atkinson-next), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-atkinson-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
-html {
-  background: var(--bg);
-  -webkit-text-size-adjust: 100%;
+/* Element defaults live in the base layer so Tailwind utilities can override them. */
+@layer base {
+  html {
+    background: var(--bg);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 26px;
+  }
+
+  h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  p, li { text-wrap: pretty; }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection { background: var(--brand-soft); color: var(--ink); }
 }
 
-body {
-  margin: 0;
-  min-height: 100dvh;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 26px;
+@layer components {
+  .skip-link {
+    position: absolute;
+    left: 16px;
+    top: -64px;
+    z-index: 100;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .skip-link:focus { top: 12px; }
+
+  .prose-measure { max-width: var(--prose-max); }
+
+  /* Inline code inside prose. */
+  .inline-code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+  }
+
+  /* React Flow: theme the base stylesheet with design tokens. */
+  .react-flow { --xy-background-color: var(--bg); --xy-edge-stroke: var(--border-strong); --xy-node-border-radius: var(--radius-sm); }
+  .react-flow__node:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-sm); }
+  .react-flow__edge:focus-visible .react-flow__edge-path { stroke: var(--focus); }
+  .react-flow__edge-text { fill: var(--ink-muted); font: 600 13px var(--font-sans); }
+  .react-flow__edge-textbg { fill: var(--bg); }
+  .react-flow__attribution { background: transparent; color: var(--ink-muted); }
+  .react-flow__attribution a { color: var(--ink-muted); }
+  .react-flow__controls-button { background: var(--surface); border-color: var(--border); color: var(--ink); }
+  .react-flow__controls-button svg { fill: currentColor; }
 }
-
-h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
-p { margin: 0; }
-p, li { text-wrap: pretty; }
-
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-::selection { background: var(--brand-soft); color: var(--ink); }
-
-.skip-link {
-  position: absolute;
-  left: 16px;
-  top: -64px;
-  z-index: 100;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  background: var(--ink);
-  color: var(--bg);
-  font-weight: 700;
-  text-decoration: none;
-}
-.skip-link:focus { top: 12px; }
-
-.prose-measure { max-width: var(--prose-max); }
-
-/* Inline code inside prose. */
-.inline-code {
-  font-family: var(--font-mono);
-  font-size: 0.875em;
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-sunken);
-}
-
-/* React Flow: theme the base stylesheet with design tokens. */
-.react-flow { --xy-background-color: var(--bg); --xy-edge-stroke: var(--border-strong); --xy-node-border-radius: var(--radius-sm); }
-.react-flow__node:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-sm); }
-.react-flow__edge:focus-visible .react-flow__edge-path { stroke: var(--focus); }
-.react-flow__edge-text { fill: var(--ink-muted); font: 600 13px var(--font-sans); }
-.react-flow__edge-textbg { fill: var(--bg); }
-.react-flow__attribution { background: transparent; color: var(--ink-muted); }
-.react-flow__attribution a { color: var(--ink-muted); }
-.react-flow__controls-button { background: var(--surface); border-color: var(--border); color: var(--ink); }
-.react-flow__controls-button svg { fill: currentColor; }
 
 @media print {
   .no-print { display: none !important; }

@@ -50,9 +50,21 @@ const parseAll = (label: string, items: unknown[], schema: { safeParse: (v: unkn
 parseAll("practiceSets", practiceSets, PracticeSetSchema);
 parseAll("projects", projects, ProjectSchema);
 parseAll("mockLoops", mockLoops, MockLoopSchema);
+const drillIds = new Set<string>();
 for (const set of practiceSets) for (const item of set.items) {
+  if (drillIds.has(item.id)) problems.push(`practice: duplicate drill id ${item.id}`);
+  drillIds.add(item.id);
   if (item.kind === "choice" && item.correct >= item.options.length) problems.push(`practice ${item.id}: correct index out of range`);
+  if (item.kind === "code") {
+    for (const m of item.r.tests.matchAll(/\bexpect_[a-z_]+/g)) {
+      if (!(SUPPORTED_R_EXPECTATIONS as readonly string[]).includes(m[0])) problems.push(`practice ${item.id}: R test uses ${m[0]}, which the browser shim does not implement`);
+    }
+    if (!/\bdef test_/.test(item.python.tests)) problems.push(`practice ${item.id}: Python tests need at least one test_ function`);
+    if (!/test_that\(/.test(item.r.tests)) problems.push(`practice ${item.id}: R tests need at least one test_that block`);
+  }
 }
+const withoutWalkthrough = rawTopics.filter((t) => t.implementation && !t.implementation.walkthrough).map((t) => t.id);
+if (process.env.REQUIRE_WALKTHROUGH && withoutWalkthrough.length) problems.push(`Topics without a code walkthrough: ${withoutWalkthrough.join(", ")}`);
 
 for (const set of practiceSets) for (const item of set.items) for (const id of item.topicIds) if (!topicIds.has(id)) problems.push(`practice ${item.id}: unknown topic ${id}`);
 for (const p of projects) for (const id of p.topicIds) if (!topicIds.has(id)) problems.push(`project ${p.id}: unknown topic ${id}`);
@@ -63,9 +75,11 @@ const days = rawWeeks.reduce((n, w) => n + w.days.length, 0);
 const withCode = rawTopics.filter((t) => t.implementation).length;
 const practiceItems = rawTopics.reduce((n, t) => n + t.practice.length, 0) + practiceSets.reduce((n, s) => n + s.items.length, 0);
 const flowSteps = rawTopics.reduce((n, t) => n + t.flow.steps.length, 0);
+const walkthroughs = rawTopics.filter((t) => t.implementation?.walkthrough).length;
+const codeProblems = practiceSets.reduce((n, s) => n + s.items.filter((i) => i.kind === "code").length, 0);
 console.log(
   `weeks=${weeks} days=${days} topics=${rawTopics.length} paired_examples=${withCode} flow_steps=${flowSteps} ` +
-    `practice_items=${practiceItems} glossary_terms=${glossary.length} projects=${projects.length} mock_loops=${mockLoops.length}`,
+    `walkthroughs=${walkthroughs} practice_items=${practiceItems} coding_problems=${codeProblems} glossary_terms=${glossary.length} projects=${projects.length} mock_loops=${mockLoops.length}`,
 );
 
 if (problems.length) {

@@ -73,14 +73,29 @@ export function TabList<T extends string>({ idBase, label, tabs, value, onChange
 }
 
 /** The panel for the selected tab. Panels cross-fade with a short vertical shift. */
-export function TabPanel({ idBase, value, children, className }: { idBase: string; value: string; children: ReactNode; className?: string }) {
+export function TabPanel({
+  idBase,
+  value,
+  children,
+  className,
+  panelKey,
+}: {
+  idBase: string;
+  /** Animation key: a change cross-fades the panel. */
+  value: string;
+  children: ReactNode;
+  className?: string;
+  /** The selected tab's id when `value` carries extra state (defaults to `value`). */
+  panelKey?: string;
+}) {
+  const tab = panelKey ?? value;
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={value}
         role="tabpanel"
-        id={panelId(idBase, value)}
-        aria-labelledby={tabId(idBase, value)}
+        id={panelId(idBase, tab)}
+        aria-labelledby={tabId(idBase, tab)}
         tabIndex={0}
         className={className}
         initial={{ opacity: 0, y: 10 }}

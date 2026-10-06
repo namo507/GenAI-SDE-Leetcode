@@ -8,7 +8,11 @@
  *   4. the R tests pass under the real testthat package,
  *   5. the R tests also pass under the browser's testthat shim.
  *
- * Usage: npm run fixtures [-- --week 3] [-- --topic w03-d02-sliding-window]
+ * Practice drills: SQL solutions must reproduce their expected rows, numeric answers
+ * must match their verification code, and coding problems' reference solutions must
+ * pass their tests in both languages while the starters fail them.
+ *
+ * Usage: npm run fixtures [-- --week 3] [-- --topic w03-d02-sliding-window] [-- --drills-only]
  * Binaries: PYTHON_BIN (default python3) and RSCRIPT_BIN (default Rscript).
  */
 import { spawnSync } from "node:child_process";
@@ -42,8 +46,10 @@ function run(bin: string, file: string, source: string): Run {
   return { ok: res.status === 0, stdout: res.stdout ?? "", stderr: (res.stderr ?? "") + (res.error ? String(res.error) : "") };
 }
 
+const drillsOnly = process.argv.includes("--drills-only");
 const topics = curriculum.topics.filter(
   (t) =>
+    !drillsOnly &&
     t.implementation &&
     (!topicFilter || t.id === topicFilter) &&
     (!weekFilter || t.id.startsWith(`w${weekFilter.padStart(2, "0")}-`)),
@@ -100,6 +106,22 @@ if (!topicFilter && !weekFilter) {
         } else console.log(`FAIL ${drill.id}: ${res.stderr}`);
         if (!ok) drillFailures++;
         else console.log(`ok   ${drill.id}`);
+      } else if (drill.kind === "code") {
+        drillCount++;
+        const base = join(dir, drill.id);
+        const issues: string[] = [];
+        const pySol = run(PY, `${base}.sol.py`, pythonTestProgram(drill.python.solution, drill.python.tests));
+        if (!pySol.ok) issues.push(`python solution fails its tests:\n${pySol.stdout}${pySol.stderr}`);
+        if (run(PY, `${base}.start.py`, pythonTestProgram(drill.python.starter, drill.python.tests)).ok) issues.push("python starter passes the tests, so the tests are too weak");
+        const rSol = run(RS, `${base}.sol.R`, rTestProgram(drill.r.solution, drill.r.tests, false));
+        if (!rSol.ok) issues.push(`R solution fails its tests (testthat):\n${rSol.stdout}${rSol.stderr}`);
+        const rShim = run(RS, `${base}.shim.R`, rTestProgram(drill.r.solution, drill.r.tests, true));
+        if (!rShim.ok) issues.push(`R solution fails its tests (browser shim):\n${rShim.stdout}${rShim.stderr}`);
+        if (run(RS, `${base}.start.R`, rTestProgram(drill.r.starter, drill.r.tests, true)).ok) issues.push("R starter passes the tests, so the tests are too weak");
+        if (issues.length) {
+          drillFailures++;
+          console.log(`FAIL ${drill.id}\n  ${issues.join("\n  ").replace(/\n/g, "\n    ")}`);
+        } else console.log(`ok   ${drill.id}`);
       } else if (drill.kind === "numeric") {
         drillCount++;
         const res = run(PY, join(dir, `${drill.id}.py`), drill.verifyPython);
@@ -112,7 +134,7 @@ if (!topicFilter && !weekFilter) {
       }
     }
   }
-  console.log(`\n${drillCount - drillFailures} of ${drillCount} SQL and numeric drills verified.`);
+  console.log(`\n${drillCount - drillFailures} of ${drillCount} SQL, numeric and coding drills verified.`);
 }
 
 const skipped = curriculum.topics.length - curriculum.topics.filter((t) => t.implementation).length;

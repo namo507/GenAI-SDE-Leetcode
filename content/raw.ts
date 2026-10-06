@@ -15,7 +15,10 @@ import * as w13 from "./weeks/w13";
 import * as w14 from "./weeks/w14";
 import * as w15 from "./weeks/w15";
 import * as w16 from "./weeks/w16";
+import { walkthroughs } from "./walkthroughs";
 
 export const weekModules = [w01, w02, w03, w04, w05, w06, w07, w08, w09, w10, w11, w12, w13, w14, w15, w16];
 export const rawWeeks = weekModules.map((m) => m.week);
-export const rawTopics = weekModules.flatMap((m) => m.topics);
+export const rawTopics = weekModules
+  .flatMap((m) => m.topics)
+  .map((t) => (t.implementation && walkthroughs[t.id] ? { ...t, implementation: { ...t.implementation, walkthrough: walkthroughs[t.id] } } : t));

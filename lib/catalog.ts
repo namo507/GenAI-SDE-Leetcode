@@ -14,6 +14,9 @@ export type CatalogTopic = {
   minutes: number;
   roles: Role[];
   week: number;
+  /** Anchor day within the week (1 to 7) and its id, for "taught on" labels. */
+  day: number;
+  dayId: string;
   href: string;
   hasCode: boolean;
   practice: { id: string; type: string; prompt: string; answer: string; rubric: string[] }[];
@@ -90,6 +93,8 @@ export function buildCatalog(c: Curriculum): Catalog {
     minutes: t.minutes,
     roles: t.roles,
     week: Number(t.id.slice(1, 3)),
+    day: Number(t.id.slice(5, 7)),
+    dayId: t.id.slice(0, 7),
     href: topicHref(t),
     hasCode: Boolean(t.implementation),
     practice: t.practice.map((p) => ({ id: p.id, type: p.type, prompt: p.prompt, answer: p.answer, rubric: p.rubric })),

@@ -59,6 +59,7 @@ function borderPoint(node: InternalNode, other: InternalNode) {
 /** A straight edge between node borders, so any layout (row, column, fan) reads cleanly. */
 const FloatingEdge = memo(function FloatingEdge({ id, source, target, label }: EdgeProps<StepEdge>) {
   const { active, visited } = useContext(StepContext);
+  const reduced = useReducedMotionPreference();
   const s = useInternalNode(source);
   const t = useInternalNode(target);
   if (!s || !t) return null;
@@ -78,7 +79,13 @@ const FloatingEdge = memo(function FloatingEdge({ id, source, target, label }: E
   return (
     <>
       <BaseEdge id={id} path={path} label={label} labelX={labelX} labelY={labelY} className="tp-edge" data-active={isActive} data-visited={visited.has(id)} />
-      <path d={`M ${tip.x} ${tip.y} L ${l.x} ${l.y} L ${r.x} ${r.y} Z`} className="tp-edge-arrow" data-active={isActive} aria-hidden />
+      <path d={`M ${tip.x} ${tip.y} L ${l.x} ${l.y} L ${r.x} ${r.y} Z`} className="tp-edge-arrow" data-active={isActive} data-visited={visited.has(id)} aria-hidden />
+      {isActive && !reduced && (
+        // A dot travelling source to target shows the direction data moves in this step.
+        <circle r={4.5} className="tp-pulse" aria-hidden>
+          <animateMotion dur="1.2s" repeatCount="indefinite" path={path} keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.4 0 0.2 1" />
+        </circle>
+      )}
     </>
   );
 });
@@ -260,6 +267,9 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
         <span className="tp-flow__step" aria-hidden>
           Step {index + 1} of {flow.steps.length}
         </span>
+      </div>
+      <div className="tp-flow__progress" aria-hidden>
+        <span style={{ width: `${((index + 1) / flow.steps.length) * 100}%` }} />
       </div>
       <div className="tp-flow__narration" aria-live="polite" aria-atomic="true">
         <span className="tp-sr-only">

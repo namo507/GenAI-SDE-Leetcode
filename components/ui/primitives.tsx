@@ -1,5 +1,5 @@
 import { CircleAlert, CircleCheck, Info, OctagonAlert } from "lucide-react";
-import { useId, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 const CALLOUT_ICONS = { note: Info, limit: CircleAlert, risk: OctagonAlert, positive: CircleCheck } as const;
 
@@ -16,54 +16,8 @@ export function Callout({ tone, title, children, className }: { tone: keyof type
   );
 }
 
-export const pct = (v: number) => `${Math.round(v * 100)}%`;
-
-/**
- * A labeled proportion. A null value renders "No data yet" instead of a zero,
- * so an empty metric never looks like a bad one.
- */
-export function Meter({
-  label,
-  value,
-  variant = "brand",
-  hint,
-  format = pct,
-}: {
-  label: string;
-  value: number | null;
-  variant?: "brand" | "accent" | "positive" | "neutral";
-  hint?: ReactNode;
-  format?: (v: number) => string;
-}) {
-  const id = useId();
-  const clamped = value === null ? null : Math.min(1, Math.max(0, value));
-  return (
-    <div className={`tp-meter ${variant === "brand" ? "" : `tp-meter--${variant}`}`}>
-      <div className="tp-meter__row">
-        <span className="tp-meter__label" id={`${id}-label`}>
-          {label}
-        </span>
-        <span className="tp-meter__value">{clamped === null ? "No data yet" : format(clamped)}</span>
-      </div>
-      {clamped === null ? (
-        <div className="tp-meter__track" aria-hidden />
-      ) : (
-        <div
-          className="tp-meter__track"
-          role="meter"
-          aria-labelledby={`${id}-label`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(clamped * 100)}
-          aria-valuetext={format(clamped)}
-        >
-          <div className="tp-meter__fill" style={{ width: `${clamped * 100}%` }} />
-        </div>
-      )}
-      {hint && <div className="tp-meter__hint">{hint}</div>}
-    </div>
-  );
-}
+export { Meter } from "./Meter";
+export { pct } from "@/lib/format";
 
 export function Stat({ label, value, note }: { label: string; value: ReactNode; note?: ReactNode }) {
   return (

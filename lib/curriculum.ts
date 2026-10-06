@@ -10,10 +10,11 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = "1.0.0";
 
-export const ROLES = ["sde", "data-scientist", "ml-engineer", "genai-engineer", "data-engineer"] as const;
+export const ROLES = ["sde", "data-scientist", "data-analyst", "ml-engineer", "genai-engineer", "data-engineer"] as const;
 export const ROLE_LABELS: Record<Role, string> = {
   sde: "Software engineer",
   "data-scientist": "Data scientist",
+  "data-analyst": "Data analyst",
   "ml-engineer": "ML engineer",
   "genai-engineer": "GenAI engineer",
   "data-engineer": "Data engineer",
@@ -30,6 +31,7 @@ export const DOMAINS = [
   "deep-learning",
   "system-design",
   "data-engineering",
+  "cloud",
   "mlops",
   "llm",
   "rag",
@@ -47,12 +49,31 @@ export const DOMAIN_LABELS: Record<Domain, string> = {
   "deep-learning": "Deep learning",
   "system-design": "System design",
   "data-engineering": "Data engineering",
-  mlops: "Cloud, DevOps and MLOps",
+  cloud: "Cloud computing",
+  mlops: "MLOps and deployment",
   llm: "LLMs and GenAI",
   rag: "RAG and evaluation",
   agents: "Agentic systems",
   career: "Capstones and interviews",
 };
+
+/** Library categories: how learners browse topics. Each domain belongs to exactly one category. */
+export const CATEGORIES = [
+  { id: "foundations", label: "Foundations", domains: ["foundations"], blurb: "Python and R side by side, complexity, recursion, testing and data wrangling." },
+  { id: "dsa", label: "Data structures and algorithms", domains: ["dsa"], blurb: "Arrays to graphs, the patterns behind coding interviews." },
+  { id: "sql", label: "SQL and data modeling", domains: ["sql"], blurb: "Query order, joins, windows, indexes, transactions and dimensional models." },
+  { id: "statistics", label: "Statistics and experimentation", domains: ["statistics"], blurb: "Distributions, inference, A/B tests, power and Bayesian thinking." },
+  { id: "analytics", label: "Analytics and BI", domains: ["analytics"], blurb: "EDA, metrics, funnels, cohorts, segmentation, root cause and dashboards." },
+  { id: "ml", label: "Machine learning", domains: ["ml", "advanced-ml"], blurb: "From leakage-free splits to boosting, recommenders, causal inference and interpretability." },
+  { id: "deep-learning", label: "Deep learning", domains: ["deep-learning"], blurb: "Backpropagation, optimizers, CNNs, RNNs, attention and training at scale." },
+  { id: "genai", label: "GenAI and LLMs", domains: ["llm", "rag", "agents"], blurb: "Tokens to agents: prompting, fine-tuning, retrieval, evaluation and guardrails." },
+  { id: "system-design", label: "System design", domains: ["system-design"], blurb: "Estimation, APIs, caching, queues, consistency, storage and rate limiting." },
+  { id: "data-engineering", label: "Data engineering", domains: ["data-engineering"], blurb: "Pipelines, file formats, Spark, streaming, lakehouses and data quality." },
+  { id: "cloud", label: "Cloud and MLOps", domains: ["cloud", "mlops"], blurb: "Compute, containers, storage, networking, IAM, cost, CI/CD and model operations." },
+  { id: "career", label: "Interviews and capstones", domains: ["career"], blurb: "Capstone scoping, behavioral stories, product cases and remediation." },
+] as const satisfies readonly { id: string; label: string; domains: readonly Domain[]; blurb: string }[];
+export type CategoryId = (typeof CATEGORIES)[number]["id"];
+export const categoryOf = (domain: Domain): (typeof CATEGORIES)[number] => CATEGORIES.find((c) => (c.domains as readonly Domain[]).includes(domain))!;
 
 export const TRACKS = ["core", "data", "ai", "platform", "capstone"] as const;
 export const TRACK_LABELS: Record<Track, string> = {
@@ -129,6 +150,27 @@ export const CodeSampleSchema = z.object({
   packages: z.array(nonEmpty).default([]),
 });
 
+/**
+ * One step of the ELI5 code walkthrough. `python` and `r` are exact substrings
+ * of the first line to highlight in each program; the walkthrough highlights
+ * that line plus the following `pythonLines - 1` (or `rLines - 1`) lines.
+ */
+export const WalkthroughStepSchema = z.object({
+  python: nonEmpty,
+  r: nonEmpty,
+  pythonLines: z.number().int().min(1).max(20).default(1),
+  rLines: z.number().int().min(1).max(20).default(1),
+  eli5: nonEmpty,
+});
+
+/** Index of the first line at or after `from` containing `anchor`, or -1. Shared by validation and the UI. */
+export function findAnchorLine(code: string, anchor: string, from = 0): number {
+  const lines = code.split("\n");
+  for (let i = Math.max(0, from); i < lines.length; i++) if (lines[i]!.includes(anchor)) return i;
+  for (let i = 0; i < Math.min(from, lines.length); i++) if (lines[i]!.includes(anchor)) return i;
+  return -1;
+}
+
 export const ImplementationSchema = z.object({
   /** One sentence: the problem both programs solve. */
   problem: nonEmpty,
@@ -158,6 +200,18 @@ export const ImplementationSchema = z.object({
     whyWrong: nonEmpty,
     fix: nonEmpty,
   }),
+  /** "Explain the code like I'm five": a guided tour over both programs. */
+  walkthrough: z.array(WalkthroughStepSchema).min(3).optional(),
+}).superRefine((impl, ctx) => {
+  impl.walkthrough?.forEach((s, i) => {
+    for (const lang of ["python", "r"] as const) {
+      const codeText = impl[lang].code;
+      const line = findAnchorLine(codeText, s[lang]);
+      const span = lang === "python" ? s.pythonLines : s.rLines;
+      if (line < 0) ctx.addIssue({ code: "custom", path: ["walkthrough", i, lang], message: `Walkthrough step ${i + 1}: "${s[lang]}" is not in the ${lang} code` });
+      else if (line + span > codeText.split("\n").length) ctx.addIssue({ code: "custom", path: ["walkthrough", i], message: `Walkthrough step ${i + 1}: ${lang} span runs past the end of the code` });
+    }
+  });
 });
 
 export const FlowNodeSchema = z.object({
@@ -382,6 +436,7 @@ export const GlossaryTermSchema = z.object({
 });
 
 export type CodeSample = z.infer<typeof CodeSampleSchema>;
+export type WalkthroughStep = z.infer<typeof WalkthroughStepSchema>;
 export type Implementation = z.infer<typeof ImplementationSchema>;
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 export type FlowEdge = z.infer<typeof FlowEdgeSchema>;
@@ -401,3 +456,4 @@ export type TopicInput = z.input<typeof TopicSchema>;
 export type WeekInput = z.input<typeof WeekSchema>;
 export type DayInput = z.input<typeof DaySchema>;
 export type GlossaryTermInput = z.input<typeof GlossaryTermSchema>;
+export type WalkthroughStepInput = z.input<typeof WalkthroughStepSchema>;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Flag, Play, Trash, X } from "lucide-react";
-import { ROLE_LABELS } from "@/lib/curriculum";
+import { ROLES, ROLE_LABELS } from "@/lib/curriculum";
 import { ROUND_RUBRICS, ROUND_SCORE_LABELS, type MockLoop } from "@/lib/content-types";
 import type { MockResult } from "@/lib/progress/schema";
 import { actions } from "@/lib/progress/store";
@@ -177,7 +177,7 @@ export function InterviewsView({ loops, topics }: { loops: MockLoop[]; topics: R
               <h2 className="t-subheading">{l.title}</h2>
               <p className="t-body-sm tp-muted">{l.summary}</p>
               <p className="t-caption tp-muted">
-                {l.rounds.length} rounds · {minutes} min · {l.roles.length === 5 ? "All roles" : l.roles.map((r) => ROLE_LABELS[r]).join(", ")}
+                {l.rounds.length} rounds · {minutes} min · {l.roles.length === ROLES.length ? "All roles" : l.roles.map((r) => ROLE_LABELS[r]).join(", ")}
               </p>
               <ol className="grid gap-0.5 t-body-sm">
                 {l.rounds.map((r, i) => (

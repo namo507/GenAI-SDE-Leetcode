@@ -55,6 +55,7 @@
                 "deep-learning",
                 "system-design",
                 "data-engineering",
+                "cloud",
                 "mlops",
                 "llm",
                 "rag",
@@ -83,6 +84,7 @@
               "enum": [
                 "sde",
                 "data-scientist",
+                "data-analyst",
                 "ml-engineer",
                 "genai-engineer",
                 "data-engineer"
@@ -282,6 +284,7 @@
               "deep-learning",
               "system-design",
               "data-engineering",
+              "cloud",
               "mlops",
               "llm",
               "rag",
@@ -297,6 +300,7 @@
               "enum": [
                 "sde",
                 "data-scientist",
+                "data-analyst",
                 "ml-engineer",
                 "genai-engineer",
                 "data-engineer"
@@ -581,6 +585,44 @@
                   "whyWrong",
                   "fix"
                 ]
+              },
+              "walkthrough": {
+                "minItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "python": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "r": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "pythonLines": {
+                      "default": 1,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 20
+                    },
+                    "rLines": {
+                      "default": 1,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 20
+                    },
+                    "eli5": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "python",
+                    "r",
+                    "eli5"
+                  ]
+                }
               }
             },
             "required": [
@@ -868,6 +910,7 @@
             "deep-learning",
             "system-design",
             "data-engineering",
+            "cloud",
             "mlops",
             "llm",
             "rag",
@@ -907,9 +950,10 @@
           "type": "string",
           "enum": [
             "topic-drills",
-            "sql",
             "coding",
+            "sql",
             "statistics",
+            "concepts",
             "system-design",
             "rag-diagnosis"
           ]
@@ -1237,6 +1281,145 @@
                   "correct",
                   "explanation"
                 ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "code"
+                  },
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9-]+$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "topicIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^w(0[1-9]|1[0-6])-d0[1-7]-[a-z0-9]+(?:-[a-z0-9]+)*$"
+                    }
+                  },
+                  "difficulty": {
+                    "type": "string",
+                    "enum": [
+                      "beginner",
+                      "intermediate",
+                      "advanced"
+                    ]
+                  },
+                  "hints": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "pattern": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "examples": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "input": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "output": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "input",
+                        "output"
+                      ]
+                    }
+                  },
+                  "python": {
+                    "type": "object",
+                    "properties": {
+                      "starter": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "solution": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "tests": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "starter",
+                      "solution",
+                      "tests"
+                    ]
+                  },
+                  "r": {
+                    "type": "object",
+                    "properties": {
+                      "starter": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "solution": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "tests": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "starter",
+                      "solution",
+                      "tests"
+                    ]
+                  },
+                  "complexity": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "eli5": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "id",
+                  "title",
+                  "prompt",
+                  "topicIds",
+                  "difficulty",
+                  "pattern",
+                  "examples",
+                  "python",
+                  "r",
+                  "complexity",
+                  "eli5"
+                ]
               }
             ]
           }
@@ -1262,6 +1445,7 @@
           "enum": [
             "sde",
             "data-scientist",
+            "data-analyst",
             "ml-engineer",
             "genai-engineer",
             "data-engineer"
@@ -1404,6 +1588,7 @@
             "enum": [
               "sde",
               "data-scientist",
+              "data-analyst",
               "ml-engineer",
               "genai-engineer",
               "data-engineer"

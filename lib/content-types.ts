@@ -57,9 +57,28 @@ export const ChoiceDrillSchema = z.object({
   explanation: nonEmpty,
 });
 
-export const DrillSchema = z.discriminatedUnion("kind", [SqlDrillSchema, NumericDrillSchema, DesignDrillSchema, ChoiceDrillSchema]);
+/**
+ * LeetCode-style problems in both languages. CI checks that each reference
+ * solution passes its tests (Python asserts; R with real testthat and with the
+ * browser shim) and that each starter fails them, so the tests have teeth.
+ */
+const codeSide = z.object({ starter: nonEmpty, solution: nonEmpty, tests: nonEmpty });
+export const CodeProblemSchema = z.object({
+  kind: z.literal("code"),
+  ...drillBase,
+  /** The interview pattern the problem trains, for example "Hash map" or "Sliding window". */
+  pattern: nonEmpty,
+  examples: z.array(z.object({ input: nonEmpty, output: nonEmpty, note: z.string().optional() })).min(1),
+  python: codeSide,
+  r: codeSide,
+  complexity: nonEmpty,
+  /** The idea of the reference solution, explained simply. */
+  eli5: nonEmpty,
+});
 
-export const PRACTICE_SET_IDS = ["topic-drills", "sql", "coding", "statistics", "system-design", "rag-diagnosis"] as const;
+export const DrillSchema = z.discriminatedUnion("kind", [SqlDrillSchema, NumericDrillSchema, DesignDrillSchema, ChoiceDrillSchema, CodeProblemSchema]);
+
+export const PRACTICE_SET_IDS = ["topic-drills", "coding", "sql", "statistics", "concepts", "system-design", "rag-diagnosis"] as const;
 export type PracticeSetId = (typeof PRACTICE_SET_IDS)[number];
 
 export const PracticeSetSchema = z.object({
@@ -112,6 +131,7 @@ export type SqlDrill = z.infer<typeof SqlDrillSchema>;
 export type NumericDrill = z.infer<typeof NumericDrillSchema>;
 export type DesignDrill = z.infer<typeof DesignDrillSchema>;
 export type ChoiceDrill = z.infer<typeof ChoiceDrillSchema>;
+export type CodeProblem = z.infer<typeof CodeProblemSchema>;
 export type Drill = z.infer<typeof DrillSchema>;
 export type PracticeSet = z.infer<typeof PracticeSetSchema>;
 export type Project = z.infer<typeof ProjectSchema>;

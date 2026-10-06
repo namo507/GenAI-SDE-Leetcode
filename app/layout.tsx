@@ -1,24 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible_Mono, Atkinson_Hyperlegible_Next } from "next/font/google";
-import "@xyflow/react/dist/base.css";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/shell/AppShell";
 import { Providers } from "@/components/shell/Providers";
 import { STORAGE_KEY } from "@/lib/progress/schema";
 
-const sans = Atkinson_Hyperlegible_Next({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-atkinson-next", display: "swap", adjustFontFallback: false, fallback: ["ui-sans-serif", "system-ui", "sans-serif"] });
-const mono = Atkinson_Hyperlegible_Mono({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-atkinson-mono", display: "swap", adjustFontFallback: false, fallback: ["ui-monospace", "monospace"] });
+const sans = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "TechPrep OS", template: "%s · TechPrep OS" },
   description:
-    "A 16-week study system for software engineering, data science, ML and GenAI interviews, with ELI5 and Senior explanations, runnable Python and R, and step-by-step diagrams.",
+    "A 16-week interview prep dashboard for software, data science, data analyst, ML and GenAI roles: ELI5 and senior explanations, runnable Python and R, animated diagrams and practice.",
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f5f1" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e1012" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
   ],
 };
 
