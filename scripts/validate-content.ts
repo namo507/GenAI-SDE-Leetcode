@@ -10,6 +10,8 @@ import { practiceSets } from "@/content/practice";
 import { projects } from "@/content/projects";
 import { mockLoops } from "@/content/interviews";
 import { MockLoopSchema, PracticeSetSchema, ProjectSchema } from "@/lib/content-types";
+import { ROLE_PATCHES } from "@/content/roles";
+import { walkthroughs } from "@/content/walkthroughs";
 
 const problems: string[] = [];
 
@@ -19,6 +21,12 @@ if (!parsed.success) {
 }
 
 const topicIds = new Set(rawTopics.map((t) => t.id));
+for (const id of Object.keys(ROLE_PATCHES)) if (!topicIds.has(id)) problems.push(`content/roles.ts: unknown topic ${id}`);
+for (const id of Object.keys(walkthroughs)) {
+  const t = rawTopics.find((x) => x.id === id);
+  if (!t) problems.push(`walkthroughs: unknown topic ${id}`);
+  else if (!t.implementation) problems.push(`walkthroughs: ${id} has no implementation to walk through`);
+}
 const text = JSON.stringify({ rawWeeks, rawTopics, glossary, practiceSets, projects, mockLoops });
 if (text.includes("—")) problems.push("Content contains an em dash; use commas, colons or parentheses instead.");
 if (/lorem ipsum/i.test(text)) problems.push("Content contains placeholder text.");
@@ -75,11 +83,11 @@ const days = rawWeeks.reduce((n, w) => n + w.days.length, 0);
 const withCode = rawTopics.filter((t) => t.implementation).length;
 const practiceItems = rawTopics.reduce((n, t) => n + t.practice.length, 0) + practiceSets.reduce((n, s) => n + s.items.length, 0);
 const flowSteps = rawTopics.reduce((n, t) => n + t.flow.steps.length, 0);
-const walkthroughs = rawTopics.filter((t) => t.implementation?.walkthrough).length;
+const walkthroughCount = rawTopics.filter((t) => t.implementation?.walkthrough).length;
 const codeProblems = practiceSets.reduce((n, s) => n + s.items.filter((i) => i.kind === "code").length, 0);
 console.log(
   `weeks=${weeks} days=${days} topics=${rawTopics.length} paired_examples=${withCode} flow_steps=${flowSteps} ` +
-    `walkthroughs=${walkthroughs} practice_items=${practiceItems} coding_problems=${codeProblems} glossary_terms=${glossary.length} projects=${projects.length} mock_loops=${mockLoops.length}`,
+    `walkthroughs=${walkthroughCount} practice_items=${practiceItems} coding_problems=${codeProblems} glossary_terms=${glossary.length} projects=${projects.length} mock_loops=${mockLoops.length}`,
 );
 
 if (problems.length) {

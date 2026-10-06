@@ -16,9 +16,33 @@ import * as w14 from "./weeks/w14";
 import * as w15 from "./weeks/w15";
 import * as w16 from "./weeks/w16";
 import { walkthroughs } from "./walkthroughs";
+import { extraWeeks } from "./extra";
+import { ROLE_PATCHES } from "./roles";
+import type { WeekInput } from "@/lib/curriculum";
 
 export const weekModules = [w01, w02, w03, w04, w05, w06, w07, w08, w09, w10, w11, w12, w13, w14, w15, w16];
-export const rawWeeks = weekModules.map((m) => m.week);
-export const rawTopics = weekModules
-  .flatMap((m) => m.topics)
-  .map((t) => (t.implementation && walkthroughs[t.id] ? { ...t, implementation: { ...t.implementation, walkthrough: walkthroughs[t.id] } } : t));
+
+const additions = extraWeeks.flatMap((e) => e.schedule);
+
+/** Weeks with extra topics scheduled onto their anchor days (topic ids, tasks and minutes). */
+export const rawWeeks: WeekInput[] = weekModules.map((m) => ({
+  ...m.week,
+  days: m.week.days.map((d) => {
+    const extra = additions.filter((a) => a.dayId === d.id);
+    if (!extra.length) return d;
+    const tasks = [...d.tasks, ...extra.flatMap((a) => a.tasks)];
+    return { ...d, topicIds: [...(d.topicIds ?? []), ...extra.map((a) => a.topicId)], tasks, minutes: tasks.reduce((n, t) => n + t.minutes, 0) };
+  }),
+}));
+
+const byWeek = (id: string) => Number(id.slice(1, 3)) * 10 + Number(id.slice(5, 7));
+
+/** All topics in chronological order (week, then day, base topics before extras on the same day). */
+export const rawTopics = [...weekModules.flatMap((m) => m.topics), ...extraWeeks.flatMap((e) => e.topics)]
+  .map((t, i) => ({ t, i }))
+  .sort((a, b) => byWeek(a.t.id) - byWeek(b.t.id) || a.i - b.i)
+  .map(({ t }) => {
+    const roles = ROLE_PATCHES[t.id] ? [...new Set([...t.roles, ...ROLE_PATCHES[t.id]!])] : t.roles;
+    const implementation = t.implementation && walkthroughs[t.id] ? { ...t.implementation, walkthrough: walkthroughs[t.id] } : t.implementation;
+    return { ...t, roles, ...(implementation ? { implementation } : {}) };
+  });
