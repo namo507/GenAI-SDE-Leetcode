@@ -1,0 +1,15 @@
+export const ROUTES = [
+  "/",
+  "/dashboard",
+  "/roadmap",
+  "/roadmap/w05-d05",
+  "/learn/dsa/sliding-window",
+  "/learn/career/behavioral-star",
+  "/learn/deep-learning/attention-transformers",
+  "/practice",
+  "/projects",
+  "/interviews",
+  "/analytics",
+  "/glossary",
+  "/settings",
+];

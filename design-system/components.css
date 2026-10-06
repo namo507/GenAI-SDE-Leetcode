@@ -216,18 +216,21 @@ a.tp-card:hover { border-color: var(--border-strong); }
 .tp-meter { display: grid; gap: 6px; }
 .tp-meter__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .tp-meter__label { font: 600 13px/18px var(--font-sans); letter-spacing: 0.01em; }
-.tp-meter__value { font: 600 13px/18px var(--font-mono); font-variant-numeric: tabular-nums; }
-.tp-meter__track { height: 8px; border-radius: var(--radius-sm); background: var(--surface-sunken); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+.tp-meter__value { font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
+.tp-meter__track { height: 8px; border-radius: var(--radius-sm); background: var(--brand-soft); overflow: hidden; }
 .tp-meter__fill { height: 100%; border-radius: var(--radius-sm); background: var(--brand); }
+.tp-meter--accent .tp-meter__track { background: var(--accent-soft); }
 .tp-meter--accent .tp-meter__fill { background: var(--accent); }
+.tp-meter--positive .tp-meter__track { background: var(--positive-soft); }
 .tp-meter--positive .tp-meter__fill { background: var(--positive); }
+.tp-meter--neutral .tp-meter__track { background: var(--surface-sunken); }
 .tp-meter--neutral .tp-meter__fill { background: var(--ink-muted); }
 .tp-meter__hint { font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
 
 /* ---------- Stat ---------- */
 .tp-stat { display: grid; gap: var(--space-1); }
 .tp-stat__label { font: 600 13px/18px var(--font-sans); color: var(--ink-muted); letter-spacing: 0.01em; }
-.tp-stat__value { font: 600 28px/32px var(--font-mono); font-variant-numeric: tabular-nums; }
+.tp-stat__value { font: 700 28px/32px var(--font-sans); }
 .tp-stat__note { font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
 
 /* ---------- DayTile ---------- */
@@ -308,7 +311,7 @@ button.tp-day { font: inherit; text-align: left; cursor: pointer; }
 .tp-flow__speed .tp-select { min-height: var(--control-sm); width: auto; font-size: 13px; }
 .tp-flow__narration { margin: 0; padding: var(--space-3) var(--space-4); min-height: 72px; font: 400 15px/24px var(--font-sans); }
 .tp-node {
-  min-width: 120px;
+  min-width: 88px;
   max-width: 200px;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-strong);
@@ -328,8 +331,15 @@ button.tp-day { font: inherit; text-align: left; cursor: pointer; }
 }
 .tp-node[data-visited="true"]:not([data-active="true"]) { border-color: var(--brand); }
 .tp-edge { stroke: var(--border-strong); stroke-width: 1.5; fill: none; }
-.tp-edge[data-active="true"] { stroke: var(--brand); stroke-width: 2.5; stroke-dasharray: 6 4; animation: tp-dash 0.8s linear infinite; }
+.react-flow__edge-path.tp-edge { stroke: var(--border-strong); stroke-width: 1.5; }
+.react-flow__edge-path.tp-edge[data-visited="true"] { stroke: var(--brand); stroke-width: 1.5; }
+.tp-edge[data-active="true"],
+.react-flow__edge-path.tp-edge[data-active="true"] { stroke: var(--brand); stroke-width: 2.5; stroke-dasharray: 6 4; animation: tp-dash 0.8s linear infinite; }
 @keyframes tp-dash { to { stroke-dashoffset: -20; } }
+.tp-edge-arrow { fill: var(--border-strong); }
+.tp-edge-arrow[data-active="true"] { fill: var(--brand); }
+.react-flow__handle.tp-handle { opacity: 0; width: 1px; height: 1px; min-width: 0; min-height: 0; border: 0; pointer-events: none; }
+@media (max-width: 767px) { .tp-flow__canvas { height: 280px; } }
 
 /* ---------- NavRail ---------- */
 .tp-nav { display: grid; gap: 2px; padding: var(--space-3); }
@@ -354,10 +364,18 @@ button.tp-day { font: inherit; text-align: left; cursor: pointer; }
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .tp-root *, .tp-root *::before, .tp-root *::after,
-  .tp-btn, .tp-seg__btn, .tp-nav__item, .tp-node, .tp-day, a.tp-card {
+  :root:not([data-motion="full"]) .tp-root *, :root:not([data-motion="full"]) .tp-root *::before, :root:not([data-motion="full"]) .tp-root *::after,
+  :root:not([data-motion="full"]) :is(.tp-btn, .tp-seg__btn, .tp-nav__item, .tp-node, .tp-day, a.tp-card) {
     transition-duration: 0ms !important;
     animation: none !important;
   }
-  .tp-edge[data-active="true"] { stroke-dasharray: none; }
+  :root:not([data-motion="full"]) .tp-edge[data-active="true"] { stroke-dasharray: none; animation: none; }
 }
+
+:root[data-motion="reduce"] .tp-root *,
+:root[data-motion="reduce"] .tp-root *::before,
+:root[data-motion="reduce"] .tp-root *::after {
+  transition-duration: 0ms !important;
+  animation: none !important;
+}
+:root[data-motion="reduce"] .tp-edge[data-active="true"] { stroke-dasharray: none; animation: none; }

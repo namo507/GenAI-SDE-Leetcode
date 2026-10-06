@@ -18,6 +18,7 @@ import { TopicSchema } from "@/lib/curriculum";
 import { rawTopics } from "@/content/raw";
 import { practiceSets } from "@/content/practice";
 import { normalizeOutput, pythonTestProgram, rTestProgram } from "@/lib/runtime/harness";
+import { compareSqlResult, sqlProgram, type SqlResult } from "@/lib/practice/sql";
 
 // Topics are parsed one by one so fixtures can run while later weeks are still drafts.
 const curriculum = { topics: rawTopics.map((t) => TopicSchema.parse(t)) };
@@ -83,23 +84,19 @@ for (const t of topics) {
 // Practice drills: SQL solutions must reproduce their expected rows; numeric answers must match their verification code.
 let drillFailures = 0;
 let drillCount = 0;
-const sameCell = (a: unknown, b: unknown) =>
-  typeof a === "number" && typeof b === "number" ? Math.abs(a - b) < 1e-9 : a === b;
 if (!topicFilter && !weekFilter) {
   for (const set of practiceSets) {
     for (const drill of set.items) {
       if (drill.kind === "sql") {
         drillCount++;
-        const program = `import json, sqlite3\ncon = sqlite3.connect(":memory:")\ncon.executescript(${JSON.stringify(drill.setup)})\ncur = con.execute(${JSON.stringify(drill.solution)})\nprint(json.dumps({"cols": [d[0] for d in cur.description], "rows": [list(r) for r in cur.fetchall()]}))\n`;
-        const res = run(PY, join(dir, `${drill.id}.py`), program);
+        const res = run(PY, join(dir, `${drill.id}.py`), sqlProgram(drill.setup, drill.solution));
         let ok = res.ok;
         if (ok) {
-          const out = JSON.parse(res.stdout) as { cols: string[]; rows: unknown[][] };
-          ok =
-            JSON.stringify(out.cols) === JSON.stringify(drill.expectedColumns) &&
-            out.rows.length === drill.expectedRows.length &&
-            out.rows.every((row, i) => row.length === drill.expectedRows[i]!.length && row.every((c, j) => sameCell(c, drill.expectedRows[i]![j])));
-          if (!ok) console.log(`FAIL ${drill.id}: got ${res.stdout.trim()}`);
+          const out = JSON.parse(res.stdout) as SqlResult;
+          // Exact column names in CI (the browser accepts any letter case), then the shared row comparison.
+          const check = compareSqlResult(out, drill);
+          ok = JSON.stringify(out.cols) === JSON.stringify(drill.expectedColumns) && check.ok;
+          if (!ok) console.log(`FAIL ${drill.id}: ${check.reason} Got ${res.stdout.trim()}`);
         } else console.log(`FAIL ${drill.id}: ${res.stderr}`);
         if (!ok) drillFailures++;
         else console.log(`ok   ${drill.id}`);
