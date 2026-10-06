@@ -1,0 +1,42 @@
+{
+  "name": "techprep-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TechPrep OS: a 16-week SDE, data science, ML and GenAI interview preparation dashboard with runnable Python and R lessons.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "tokens": "node scripts/build-tokens.mjs",
+    "schema": "tsx scripts/generate-schema.ts",
+    "validate": "tsx scripts/validate-content.ts",
+    "fixtures": "tsx scripts/run-fixtures.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "prebuild": "node scripts/build-tokens.mjs"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.12.0",
+    "lucide-react": "^1.52.0",
+    "motion": "^12.43.0",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}
