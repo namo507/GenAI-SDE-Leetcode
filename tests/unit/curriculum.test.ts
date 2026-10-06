@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { curriculum, glossary, mockLoops, practiceSets, projects } from "@/content";
-import { CurriculumSchema, DAY_KINDS, FlowSchema, SCHEMA_VERSION } from "@/lib/curriculum";
+import { CATEGORIES, CurriculumSchema, DAY_KINDS, FlowSchema, ROLES, SCHEMA_VERSION, categoryOf } from "@/lib/curriculum";
 import { buildSchemaDocument } from "@/lib/schema-doc";
 import { SUPPORTED_R_EXPECTATIONS } from "@/lib/runtime/harness";
 
@@ -26,7 +26,7 @@ describe("curriculum contract", () => {
 
   it("pairs runnable Python and R with real expected output and tests", () => {
     const withCode = curriculum.topics.filter((t) => t.implementation);
-    expect(withCode.length).toBeGreaterThanOrEqual(50);
+    expect(withCode.length).toBeGreaterThanOrEqual(90);
     for (const t of withCode) {
       const impl = t.implementation!;
       expect(impl.expectedOutput, t.id).not.toMatch(/PENDING/);
@@ -34,6 +34,25 @@ describe("curriculum contract", () => {
       expect(impl.tests.r, t.id).toMatch(/test_that\(/);
       const used = [...impl.tests.r.matchAll(/\b(expect_[a-z_]+)\(/g)].map((m) => m[1]);
       for (const fn of used) expect(SUPPORTED_R_EXPECTATIONS as readonly string[], `${t.id} uses ${fn}`).toContain(fn);
+    }
+  });
+
+  it("gives every paired example an ELI5 code walkthrough that covers both languages", () => {
+    for (const t of curriculum.topics.filter((x) => x.implementation)) {
+      const steps = t.implementation!.walkthrough ?? [];
+      expect(steps.length, t.id).toBeGreaterThanOrEqual(3);
+      for (const s of steps) expect(s.eli5.length, t.id).toBeGreaterThan(20);
+    }
+  });
+
+  it("covers every category and every role with a real body of topics", () => {
+    for (const c of CATEGORIES) {
+      const n = curriculum.topics.filter((t) => categoryOf(t.domain).id === c.id).length;
+      expect(n, c.id).toBeGreaterThanOrEqual(3);
+    }
+    for (const role of ROLES) {
+      const n = curriculum.topics.filter((t) => t.roles.includes(role)).length;
+      expect(n, role).toBeGreaterThanOrEqual(20);
     }
   });
 

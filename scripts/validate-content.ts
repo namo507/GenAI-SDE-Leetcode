@@ -72,7 +72,7 @@ for (const set of practiceSets) for (const item of set.items) {
   }
 }
 const withoutWalkthrough = rawTopics.filter((t) => t.implementation && !t.implementation.walkthrough).map((t) => t.id);
-if (process.env.REQUIRE_WALKTHROUGH && withoutWalkthrough.length) problems.push(`Topics without a code walkthrough: ${withoutWalkthrough.join(", ")}`);
+if (withoutWalkthrough.length) problems.push(`Every paired example needs an ELI5 code walkthrough; missing: ${withoutWalkthrough.join(", ")}`);
 
 for (const set of practiceSets) for (const item of set.items) for (const id of item.topicIds) if (!topicIds.has(id)) problems.push(`practice ${item.id}: unknown topic ${id}`);
 for (const p of projects) for (const id of p.topicIds) if (!topicIds.has(id)) problems.push(`project ${p.id}: unknown topic ${id}`);

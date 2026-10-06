@@ -5,5 +5,9 @@
  */
 import type { WalkthroughStepInput } from "@/lib/curriculum";
 import { walkthroughs as w01 } from "./w01-04";
+import { walkthroughs as w01b } from "./w01-04b";
+import { walkthroughs as w05 } from "./w05-08";
+import { walkthroughs as w09 } from "./w09-12";
+import { walkthroughs as w13 } from "./w13-16";
 
-export const walkthroughs: Record<string, WalkthroughStepInput[]> = { ...w01 };
+export const walkthroughs: Record<string, WalkthroughStepInput[]> = { ...w01, ...w01b, ...w05, ...w09, ...w13 };
