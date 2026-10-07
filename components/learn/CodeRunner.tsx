@@ -130,7 +130,7 @@ export function CodeRunner({ implementation, title }: { implementation: Implemen
             <div className="tp-seg" role="group" aria-label={`What to do with the ${title} code`}>
               {(
                 [
-                  { id: "run", label: "Run", icon: SquareTerminal },
+                  { id: "run", label: "Edit and run", icon: SquareTerminal },
                   { id: "explain", label: "Explain like I'm 5", icon: Baby },
                 ] as const
               ).map(({ id, label, icon: Icon }) => (
