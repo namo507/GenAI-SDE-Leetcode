@@ -153,7 +153,7 @@ test("mock interview loop saves a scored result", async ({ page }) => {
 
 test("glossary search filters terms and prerequisite links jump to the term", async ({ page }) => {
   await page.goto("/glossary");
-  await page.getByLabel("Search terms and definitions").fill("sliding");
+  await page.getByLabel("Search terms and definitions").fill("sliding window");
   await expect(page.getByRole("status").filter({ hasText: /^1 of \d+ terms$/ })).toBeVisible();
   await page.getByRole("link", { name: "Big-O notation" }).click();
   await expect(page.locator("#big-o")).toBeFocused();
@@ -194,4 +194,30 @@ test("ELI5 code walkthrough steps through highlighted lines", async ({ page }) =
   await expect(tour.getByText(/Step 3 of \d+/)).toBeVisible();
   await page.getByRole("tab", { name: "R" }).click();
   await expect(page.getByRole("group", { name: /R walkthrough/ })).toBeVisible();
+});
+
+test("coding bank filters problems and opens a Python or R workspace", async ({ page }) => {
+  await page.goto("/practice#coding");
+  const status = page.getByRole("status").filter({ hasText: /of \d+ problems/ });
+  await expect(status).toContainText(/^32 of 32 problems/);
+  await page.getByLabel("Difficulty").selectOption("advanced");
+  await expect(status).not.toContainText(/^32 of/);
+  await page.getByLabel("Difficulty").selectOption("all");
+  const card = page.locator("article", { has: page.getByRole("heading", { name: "Two sum" }) });
+  await card.getByText("Solve it in Python or R").click();
+  await expect(card.getByRole("textbox", { name: /Python solution, editable/ })).toHaveValue(/def two_sum\(nums, target\):/);
+  await card.getByRole("tab", { name: "R" }).click();
+  await expect(card.getByRole("textbox", { name: /R solution, editable/ })).toHaveValue(/two_sum <- function\(nums, target\)/);
+  await card.getByRole("button", { name: "Show solution" }).click();
+  await expect(card.getByText("Explain like I'm 5")).toBeVisible();
+});
+
+test("concept checks explain the answer after a choice", async ({ page }) => {
+  await page.goto("/practice#concepts");
+  const card = page.locator("article", { has: page.getByRole("heading", { name: "Hash table lookups" }) });
+  await expect(card).toBeVisible();
+  await card.getByText("O(1) average, O(n) worst case").click();
+  await card.getByRole("radio", { name: "Sure", exact: true }).check({ force: true });
+  await card.getByRole("button", { name: "Check answer" }).click();
+  await expect(card.getByText("Correct", { exact: true })).toBeVisible();
 });
