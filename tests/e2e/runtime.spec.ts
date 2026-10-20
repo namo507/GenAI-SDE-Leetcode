@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { curriculum } from "@/content";
+import { curriculum, practiceSets } from "@/content";
 
 /**
  * Real execution in the browser. These download Pyodide and webR from their CDNs,
@@ -80,6 +80,35 @@ test.describe("all paired lessons", () => {
         await expect(await runAndWait(page, "Run"), `${t.id} ${lang}`).toContainText("Output matches the expected output");
         await expect(await runAndWait(page, "Run tests"), `${t.id} ${lang} tests`).toContainText("All tests passed");
       }
+    });
+  }
+});
+
+/** Every coding problem's reference solution passes its tests in Pyodide and webR, and every SQL drill's solution is graded correct (RUNTIME_E2E=all). */
+test.describe("all practice code", () => {
+  test.skip(process.env.RUNTIME_E2E !== "all", "Set RUNTIME_E2E=all to run every coding problem and SQL drill in the browser.");
+  const items = practiceSets.flatMap((s) => s.items);
+  for (const p of items.filter((d) => d.kind === "code")) {
+    test(`coding problem ${p.id} passes in Python and R`, async ({ page }) => {
+      await page.goto("/practice#coding");
+      const card = page.locator(`article[aria-labelledby="${p.id}-title"]`);
+      await card.locator("summary", { hasText: "Solve it in Python or R" }).click();
+      for (const lang of ["Python", "R"] as const) {
+        await card.getByRole("tab", { name: lang }).click();
+        await card.getByLabel(`${lang} solution, editable`).fill(lang === "Python" ? p.python.solution : p.r.solution);
+        await card.getByRole("button", { name: "Run tests" }).click();
+        await expect(card.locator(".tp-runner__verdict"), `${p.id} ${lang}`).toContainText("All tests passed", { timeout: 240_000 });
+      }
+    });
+  }
+  for (const d of items.filter((x) => x.kind === "sql")) {
+    test(`SQL drill ${d.id} accepts its reference solution`, async ({ page }) => {
+      await page.goto("/practice#sql");
+      const card = page.locator(`article[aria-labelledby="${d.id}-title"]`);
+      await card.getByLabel("Your query", { exact: true }).fill(d.solution);
+      await card.getByRole("radio", { name: "Certain" }).check({ force: true });
+      await card.getByRole("button", { name: "Check answer" }).click();
+      await expect(card.locator(".tp-callout--positive"), d.id).toContainText("Correct", { timeout: 240_000 });
     });
   }
 });
