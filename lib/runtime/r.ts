@@ -6,11 +6,50 @@ import { DEFAULT_MAX_OUTPUT, DEFAULT_TIMEOUT_MS, type RunOptions, type RunResult
 
 const BASE_PACKAGES = new Set(["base", "stats", "utils", "methods", "datasets", "graphics", "grDevices", "tools", "grid", "splines", "stats4"]);
 
-/** Packages referenced via library(), require(), requireNamespace() or pkg:: in the code. */
+/**
+ * Blanks out comments and the contents of string literals with spaces, keeping
+ * every other character at its original offset, so a scan of the result never
+ * mistakes text such as "arn:aws:s3:::bucket" or a comment for package access.
+ */
+function maskRCode(code: string): string {
+  let out = "";
+  let quote: string | null = null;
+  let comment = false;
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i]!;
+    if (comment) {
+      comment = ch !== "\n";
+      out += comment ? " " : ch;
+    } else if (quote) {
+      if (ch === "\\" && i + 1 < code.length) {
+        out += code[i + 1] === "\n" ? " \n" : "  ";
+        i++;
+      } else if (ch === quote) {
+        quote = null;
+        out += ch;
+      } else {
+        out += ch === "\n" ? ch : " ";
+      }
+    } else if (ch === "#") {
+      comment = true;
+      out += " ";
+    } else {
+      if (ch === '"' || ch === "'") quote = ch;
+      out += ch;
+    }
+  }
+  return out;
+}
+
+/** Packages referenced via library(), require(), requireNamespace() or pkg:: in the code (not in strings or comments). */
 export function referencedRPackages(code: string): string[] {
+  const masked = maskRCode(code);
   const found = new Set<string>();
-  for (const m of code.matchAll(/\b(?:library|require|requireNamespace)\(\s*["']?([A-Za-z][A-Za-z0-9.]*)["']?/g)) found.add(m[1]!);
-  for (const m of code.matchAll(/\b([A-Za-z][A-Za-z0-9.]*):::?[A-Za-z.]/g)) found.add(m[1]!);
+  for (const m of masked.matchAll(/\b(?:library|require|requireNamespace)\(\s*/g)) {
+    const arg = /^["']?([A-Za-z][A-Za-z0-9.]*)/.exec(code.slice(m.index + m[0].length));
+    if (arg) found.add(arg[1]!);
+  }
+  for (const m of masked.matchAll(/\b([A-Za-z][A-Za-z0-9.]*):::?[A-Za-z.]/g)) found.add(m[1]!);
   return [...found];
 }
 

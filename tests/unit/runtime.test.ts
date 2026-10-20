@@ -24,6 +24,13 @@ describe("R package detection", () => {
     expect(referencedRPackages("library(MASS)\nrequire('survival')\nx <- jsonlite::toJSON(1)").sort()).toEqual(["MASS", "jsonlite", "survival"]);
     expect(referencedRPackages("x <- c(1, 2)")).toEqual([]);
   });
+
+  it("ignores package-like text inside strings and comments", () => {
+    expect(referencedRPackages('arn <- "arn:aws:s3:::reports/*"\nx <- \'a::b\' # see dplyr::filter\nlibrary(MASS)')).toEqual(["MASS"]);
+    expect(referencedRPackages('s <- "say \\"hi\\" stats::sd"\ny <- Matrix::Matrix(0, 2, 2)')).toEqual(["Matrix"]);
+    expect(referencedRPackages('msg <- "# not a comment"; z <- survival::Surv(1)')).toEqual(["survival"]);
+    expect(referencedRPackages('requireNamespace("jsonlite")')).toEqual(["jsonlite"]);
+  });
 });
 
 describe("SQL drill checking", () => {

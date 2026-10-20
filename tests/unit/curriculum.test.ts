@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { curriculum, glossary, mockLoops, practiceSets, projects } from "@/content";
-import { CATEGORIES, CurriculumSchema, DAY_KINDS, FlowSchema, ROLES, SCHEMA_VERSION, categoryOf } from "@/lib/curriculum";
+import { CATEGORIES, CurriculumSchema, DAY_KINDS, FlowSchema, R_PACKAGE_ALLOWLIST, ROLES, SCHEMA_VERSION, categoryOf } from "@/lib/curriculum";
 import { buildSchemaDocument } from "@/lib/schema-doc";
-import { SUPPORTED_R_EXPECTATIONS } from "@/lib/runtime/harness";
+import { SUPPORTED_R_EXPECTATIONS, rTestProgram } from "@/lib/runtime/harness";
+import { referencedRPackages } from "@/lib/runtime/r";
 
 describe("curriculum contract", () => {
   it("has exactly 16 weeks of 7 days in the fixed day order", () => {
@@ -35,6 +36,19 @@ describe("curriculum contract", () => {
       const used = [...impl.tests.r.matchAll(/\b(expect_[a-z_]+)\(/g)].map((m) => m[1]);
       for (const fn of used) expect(SUPPORTED_R_EXPECTATIONS as readonly string[], `${t.id} uses ${fn}`).toContain(fn);
     }
+  });
+
+  it("only references allowlisted R packages, as the browser runtime checks before running", () => {
+    const allowed = R_PACKAGE_ALLOWLIST as readonly string[];
+    const programs: [string, string][] = [];
+    for (const t of curriculum.topics) {
+      if (t.implementation) programs.push([t.id, rTestProgram(t.implementation.r.code, t.implementation.tests.r)]);
+    }
+    for (const s of practiceSets) {
+      for (const d of s.items) if (d.kind === "code") programs.push([d.id, rTestProgram(d.r.solution, d.r.tests)], [`${d.id} starter`, rTestProgram(d.r.starter, d.r.tests)]);
+    }
+    expect(programs.length).toBeGreaterThanOrEqual(150);
+    for (const [id, code] of programs) expect(referencedRPackages(code).filter((p) => !allowed.includes(p)), id).toEqual([]);
   });
 
   it("gives every paired example an ELI5 code walkthrough that covers both languages", () => {
