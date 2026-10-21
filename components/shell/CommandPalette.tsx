@@ -35,7 +35,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     loadIndex()
       .then((e) => alive && setEntries(e))
       .catch(() => alive && setFailed(true));
-    requestAnimationFrame(() => input.current?.focus());
+    // Keep the last query visible but selected, so typing starts a new search. Doing it now, before
+    // any key reaches the input, means fast typing right after Ctrl+K is never selected and replaced.
+    const focusInput = () => {
+      input.current?.focus();
+      input.current?.select();
+    };
+    if (input.current) focusInput();
+    else requestAnimationFrame(focusInput);
     return () => {
       alive = false;
     };
@@ -48,7 +55,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       onClose();
       setQuery("");
       setActive(0);
-      router.push(e.href);
+      const [path, hash] = e.href.split("#");
+      // Same page with a new hash: set it directly so the page hears a real hashchange (router.push does not fire one).
+      if (hash && path === window.location.pathname) window.location.hash = hash;
+      else router.push(e.href);
     },
     [onClose, router],
   );
@@ -94,6 +104,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             aria-modal="true"
             aria-label="Search TechPrep OS"
             className="tp-cmdk self-start"
+            // Keep focus in the input when the list or footer is clicked, so Escape, arrows and Tab keep working.
+            onMouseDown={(e) => {
+              if (e.target !== input.current) e.preventDefault();
+            }}
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}

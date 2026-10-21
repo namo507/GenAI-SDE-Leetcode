@@ -19,10 +19,10 @@ export function GET() {
     ...curriculum.weeks.flatMap((w) =>
       w.days.map((d) => ({
         kind: "day" as const,
-        title: `W${w.number} D${d.day}: ${d.title}`,
+        title: d.title,
         href: `/roadmap/${d.id}`,
-        meta: d.label ?? DAY_KIND_LABELS[d.kind],
-        keywords: `${w.title} ${d.summary}`,
+        meta: `Week ${w.number} · Day ${d.day} · ${d.label ?? DAY_KIND_LABELS[d.kind]}`,
+        keywords: `W${w.number} D${d.day} W${w.number}D${d.day} ${w.title} ${d.summary}`,
       })),
     ),
     ...glossary.map((g) => ({ kind: "term" as const, title: g.term, href: `/glossary#${g.slug}`, meta: DOMAIN_LABELS[g.domain], keywords: g.definition })),

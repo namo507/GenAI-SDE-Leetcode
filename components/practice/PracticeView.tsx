@@ -26,22 +26,23 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
+const TAB_EVENT = "techprep:practice-tab";
 const subscribeHash = (cb: () => void) => {
-  window.addEventListener("hashchange", cb);
-  return () => window.removeEventListener("hashchange", cb);
+  for (const name of ["hashchange", "popstate", TAB_EVENT]) window.addEventListener(name, cb);
+  return () => {
+    for (const name of ["hashchange", "popstate", TAB_EVENT]) window.removeEventListener(name, cb);
+  };
 };
 
-/** The selected tab follows the URL hash, so /practice#sql links straight to a set. */
+/** The selected tab always follows the URL hash, so /practice#sql and later hash changes both pick the set. */
 function useHashTab(): [TabId, (t: TabId) => void] {
   const hash = useSyncExternalStore(subscribeHash, () => window.location.hash.slice(1), () => "");
-  const [chosen, setChosen] = useState<TabId | null>(null);
-  const fromHash = TABS.find((t) => t.id === hash)?.id;
-  const value = chosen ?? fromHash ?? "review";
+  const value = TABS.find((t) => t.id === hash)?.id ?? "review";
   return [
     value,
     (t) => {
-      setChosen(t);
       window.history.replaceState(null, "", `#${t}`);
+      window.dispatchEvent(new Event(TAB_EVENT));
     },
   ];
 }

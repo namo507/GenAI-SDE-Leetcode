@@ -115,13 +115,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   const openSearch = useCallback(() => {
-    returnFocus.current = document.activeElement as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    // Opening search closes the drawer, which removes whatever had focus inside it.
+    returnFocus.current = active && drawer.current?.contains(active) ? menuButton.current : active;
     setOpen(false);
     setSearch(true);
   }, []);
   const closeSearch = useCallback(() => {
     setSearch(false);
-    requestAnimationFrame(() => returnFocus.current?.focus?.());
+    requestAnimationFrame(() => {
+      const target = returnFocus.current?.isConnected ? returnFocus.current : document.getElementById("main");
+      target?.focus?.();
+    });
+  }, []);
+
+  // The drawer only exists below the lg breakpoint; widening the window closes it and releases its scroll lock.
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (wide.matches) setOpen(false);
+    };
+    wide.addEventListener("change", onChange);
+    return () => wide.removeEventListener("change", onChange);
   }, []);
 
   useEffect(() => {
@@ -220,7 +235,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[var(--content-max)] px-4 pb-20 pt-6 outline-none sm:px-6 lg:px-10 lg:pt-10">
+          <main id="main" tabIndex={-1} className="mx-auto w-full scroll-mt-14 max-w-[var(--content-max)] px-4 pb-20 pt-6 outline-none sm:px-6 lg:px-10 lg:pt-10">
             {children}
           </main>
         </div>
