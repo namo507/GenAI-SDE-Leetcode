@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Check, CircleAlert, CircleCheck, Play, RotateCcw } from "lucide-react";
 import type { ChoiceDrill, DesignDrill, NumericDrill, SqlDrill } from "@/lib/content-types";
 import { compareSqlResult, sqlProgram, type SqlResult } from "@/lib/practice/sql";
-import { actions } from "@/lib/progress/store";
+import { actions, useHydrated } from "@/lib/progress/store";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Countdown, useStopwatch } from "@/components/ui/Stopwatch";
 import { RuntimeStatus } from "@/components/learn/CodeRunner";
@@ -114,6 +114,7 @@ function ResultTable({ result, caption }: { result: SqlResult; caption: string }
 
 export function SqlDrillCard({ drill, topics }: { drill: SqlDrill; topics: TopicIndex }) {
   const status = useRuntimeState("python");
+  const hydrated = useHydrated();
   const [query, setQuery] = useState("");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -169,6 +170,7 @@ export function SqlDrillCard({ drill, topics }: { drill: SqlDrill; topics: Topic
           autoCapitalize="off"
           autoComplete="off"
           placeholder="SELECT ..."
+          readOnly={!hydrated}
           disabled={verdict !== null}
         />
       </div>
@@ -218,6 +220,7 @@ export function SqlDrillCard({ drill, topics }: { drill: SqlDrill; topics: Topic
 
 export function NumericDrillCard({ drill, topics }: { drill: NumericDrill; topics: TopicIndex }) {
   const status = useRuntimeState("python");
+  const hydrated = useHydrated();
   const [value, setValue] = useState("");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [verdict, setVerdict] = useState<boolean | null>(null);
@@ -251,6 +254,7 @@ export function NumericDrillCard({ drill, topics }: { drill: NumericDrill; topic
             inputMode="decimal"
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            readOnly={!hydrated}
             aria-invalid={value.trim() !== "" && !valid}
             aria-describedby={`${drill.id}-tol`}
             disabled={verdict !== null}
@@ -321,6 +325,7 @@ export function NumericDrillCard({ drill, topics }: { drill: NumericDrill; topic
 
 export function DesignDrillCard({ drill, topics }: { drill: DesignDrill; topics: TopicIndex }) {
   const watch = useStopwatch();
+  const hydrated = useHydrated();
   const [notes, setNotes] = useState("");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [phase, setPhase] = useState<"work" | "assess" | "done">("work");
@@ -335,7 +340,7 @@ export function DesignDrillCard({ drill, topics }: { drill: DesignDrill; topics:
         <label htmlFor={`${drill.id}-notes`} className="tp-field__label">
           Your design notes
         </label>
-        <textarea id={`${drill.id}-notes`} className="tp-textarea" rows={6} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <textarea id={`${drill.id}-notes`} className="tp-textarea" rows={6} value={notes} onChange={(e) => setNotes(e.target.value)} readOnly={!hydrated} />
         <span className="tp-field__hint">Notes stay on this page only and are not saved.</span>
       </div>
       {phase === "work" && (

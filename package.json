@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "export": "node scripts/build-tokens.mjs && STATIC_EXPORT=1 next build",
     "tokens": "node scripts/build-tokens.mjs",
     "schema": "tsx scripts/generate-schema.ts",
     "validate": "tsx scripts/validate-content.ts",

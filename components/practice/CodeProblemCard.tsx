@@ -6,11 +6,11 @@ import type { CodeProblem } from "@/lib/content-types";
 import type { Language } from "@/lib/curriculum";
 import { pythonTestProgram, rTestProgram } from "@/lib/runtime/harness";
 import { DEFAULT_MAX_OUTPUT, type RunResult } from "@/lib/runtime/types";
-import { actions, useProgress } from "@/lib/progress/store";
+import { actions, useHydrated, useProgress } from "@/lib/progress/store";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { TabList, TabPanel } from "@/components/ui/Tabs";
 import { RuntimeStatus } from "@/components/learn/CodeRunner";
-import { runtimeFor, useRuntimeState } from "@/components/learn/useRuntime";
+import { RUNNERS_OFF, runtimeFor, useRuntimeState } from "@/components/learn/useRuntime";
 import { ConfidencePicker } from "./Confidence";
 import { DrillShell, type TopicIndex } from "./Drills";
 
@@ -35,6 +35,7 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
   const [confidence, setConfidence] = useState<number | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const snapshot = useRuntimeState(lang);
+  const hydrated = useHydrated();
 
   const runTests = async () => {
     if (busy) return;
@@ -145,6 +146,7 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
                 void runTests();
               }
             }}
+            readOnly={!hydrated}
             rows={Math.min(Math.max(lines + 2, 8), 24)}
             spellCheck={false}
             autoCapitalize="off"
@@ -179,7 +181,7 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
               <div className="tp-runner__verdict" data-match={result.ok}>
                 {result.ok ? <CircleCheck className="tp-icon" aria-hidden /> : <CircleAlert className="tp-icon" aria-hidden />}
                 <span>
-                  {result.ok ? "All tests passed." : result.timedOut ? "Stopped: the time limit was reached." : "Some tests failed. Read the FAIL lines above."}
+                  {result.ok ? "All tests passed." : RUNNERS_OFF ? "Code execution is off in this preview." : result.timedOut ? "Stopped: the time limit was reached." : "Some tests failed. Read the FAIL lines above."}
                   <span className="tp-muted font-normal"> ({(result.ms / 1000).toFixed(2)} s)</span>
                 </span>
               </div>

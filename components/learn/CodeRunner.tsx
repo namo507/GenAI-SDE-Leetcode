@@ -6,9 +6,9 @@ import { Baby, CircleAlert, CircleCheck, CircleDashed, FlaskConical, LoaderCircl
 import { PYTHON_PACKAGE_ALLOWLIST, R_PACKAGE_ALLOWLIST, type Implementation, type Language } from "@/lib/curriculum";
 import { normalizeOutput, outputsMatch, pythonTestProgram, rTestProgram } from "@/lib/runtime/harness";
 import { DEFAULT_MAX_OUTPUT, DEFAULT_TIMEOUT_MS, type RunResult, type RuntimeSnapshot } from "@/lib/runtime/types";
-import { useProgress } from "@/lib/progress/store";
+import { useHydrated, useProgress } from "@/lib/progress/store";
 import { TabList, TabPanel } from "@/components/ui/Tabs";
-import { runtimeFor, useRuntimeState } from "./useRuntime";
+import { RUNNERS_OFF, runtimeFor, useRuntimeState } from "./useRuntime";
 import { CodeTour } from "./CodeTour";
 
 const LANG_LABEL: Record<Language, string> = { python: "Python", r: "R" };
@@ -44,12 +44,16 @@ function Verdict({ outcome, expected }: { outcome: Outcome; expected: string }) 
     match = r.ok;
     text = r.ok
       ? "All tests passed."
-      : r.timedOut || r.truncated || r.terminated
+      : RUNNERS_OFF
+        ? "Code execution is off in this preview."
+        : r.timedOut || r.truncated || r.terminated
         ? "The test run was stopped."
         : "Some tests failed. Read the FAIL lines above.";
   } else if (!r.ok) {
     match = false;
-    text = r.timedOut ? "Stopped: time limit reached." : r.truncated ? "Stopped: output limit reached." : "The program raised an error.";
+    text = RUNNERS_OFF
+      ? "Code execution is off in this preview."
+      : r.timedOut ? "Stopped: time limit reached." : r.truncated ? "Stopped: output limit reached." : "The program raised an error.";
   } else if (outputsMatch(r.stdout, expected)) {
     match = true;
     text = "Output matches the expected output.";
@@ -82,6 +86,8 @@ export function CodeRunner({ implementation, title }: { implementation: Implemen
   const [outcomes, setOutcomes] = useState<Record<Language, Outcome | null>>({ python: null, r: null });
   const [running, setRunning] = useState<Record<Language, boolean>>({ python: false, r: false });
   const snapshot = useRuntimeState(lang);
+  // Editing before hydration would be overwritten when React takes over the textarea.
+  const hydrated = useHydrated();
   const tour = implementation.walkthrough;
   const [mode, setMode] = useState<"run" | "explain">("run");
   const modeIndicator = `${idBase}-mode`;
@@ -201,6 +207,7 @@ export function CodeRunner({ implementation, title }: { implementation: Implemen
               value={code[lang]}
               onChange={(e) => setCode((c) => ({ ...c, [lang]: e.target.value }))}
               onKeyDown={onEditorKey}
+              readOnly={!hydrated}
               rows={Math.min(Math.max(lines + 1, 8), 30)}
               spellCheck={false}
               autoCapitalize="off"
