@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 /**
  * STATIC_EXPORT=1 writes a plain static site to .next-export/ for any static
- * host, in its own folder so it never disturbs a running `next start`.
+ * host. Turbopack still compiles through .next, so stop a running `next start`
+ * first and run `npm run build` again afterwards.
  * STATIC_ASSET_PREFIX (for example "/assets") serves the JS, CSS and fonts from
  * <prefix>/_next/ for hosts that cannot publish paths starting with "_".
  */

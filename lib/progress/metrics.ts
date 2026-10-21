@@ -32,6 +32,19 @@ export function todaysDay(catalog: Pick<Catalog, "days">, startDate: string, tod
   return { day: catalog.days[Math.min(offset, catalog.days.length - 1)] ?? null, offset };
 }
 
+/**
+ * Days done against the plan. Every day before today should be done; today
+ * itself counts as on plan whether or not it is finished yet. Positive means
+ * ahead, negative behind, 0 on plan.
+ */
+export function planPace(doneCount: number, offset: number): number {
+  const before = Math.max(0, Math.min(TOTAL_DAYS, offset));
+  const throughToday = Math.max(0, Math.min(TOTAL_DAYS, offset + 1));
+  if (doneCount < before) return doneCount - before;
+  if (doneCount > throughToday) return doneCount - throughToday;
+  return 0;
+}
+
 export function completion(p: Progress): number {
   return Object.values(p.days).filter((d) => d.status === "done").length / TOTAL_DAYS;
 }

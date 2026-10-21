@@ -12,6 +12,7 @@ import {
   dueReviews,
   readiness,
   retention,
+  planPace,
   todaysDay,
   topicMastery,
   weakAreas,
@@ -113,6 +114,16 @@ describe("plan position and queues", () => {
     expect(todaysDay(catalog, "2026-01-01", "2026-01-09").day?.id).toBe("w02-d02");
     expect(todaysDay(catalog, "2026-01-01", "2027-01-01").day?.id).toBe("w16-d07");
     expect(todaysDay(catalog, "2026-01-05", "2026-01-01").day).toBeNull();
+  });
+
+  it("counts today as on plan whether or not it is done yet", () => {
+    expect(planPace(0, 0)).toBe(0);
+    expect(planPace(1, 0)).toBe(0);
+    expect(planPace(2, 0)).toBe(1);
+    expect(planPace(3, 5)).toBe(-2);
+    expect(planPace(5, 5)).toBe(0);
+    expect(planPace(0, -3)).toBe(0);
+    expect(planPace(112, 400)).toBe(0);
   });
 
   it("lists due reviews oldest first", () => {

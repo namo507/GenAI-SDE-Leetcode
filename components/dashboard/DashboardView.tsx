@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { ArrowRight, Check, Clock, Repeat, Search, Target } from "lucide-react";
 import { CATEGORIES, DAY_KIND_LABELS, ROLE_LABELS, categoryOf } from "@/lib/curriculum";
 import type { Catalog } from "@/lib/catalog";
-import { TOTAL_DAYS, averageConfidence, completion, dueReviews, overallMastery, retention, todaysDay, topicMastery, weakAreas } from "@/lib/progress/metrics";
+import { TOTAL_DAYS, averageConfidence, completion, dueReviews, overallMastery, planPace, retention, todaysDay, topicMastery, weakAreas } from "@/lib/progress/metrics";
 import { dayStatus, useClientProgress, useToday } from "@/lib/progress/hooks";
 import { actions } from "@/lib/progress/store";
 import { Callout, Meter, pct } from "@/components/ui/primitives";
@@ -43,8 +43,7 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
   const weak = weakAreas(progress, catalog, today, 4);
   const topicsById = new Map(catalog.topics.map((t) => [t.id, t]));
   const doneCount = Object.values(progress.days).filter((d) => d.status === "done").length;
-  const expected = Math.max(0, Math.min(TOTAL_DAYS, offset + 1));
-  const pace = doneCount - expected;
+  const pace = planPace(doneCount, offset);
   const conf = averageConfidence(progress);
   const attempts = progress.attempts.length;
   const roles = new Set(settings.roles);
