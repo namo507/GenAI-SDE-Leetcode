@@ -37,9 +37,13 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
   const snapshot = useRuntimeState(lang);
   const hydrated = useHydrated();
 
+  // The language whose runtime is busy, so Stop ends that run even if the learner switched tabs.
+  const [runningLang, setRunningLang] = useState<Language | null>(null);
+
   const runTests = async () => {
     if (busy) return;
     const target = lang;
+    setRunningLang(target);
     const program = target === "python" ? pythonTestProgram(code.python, problem.python.tests) : rTestProgram(code.r, problem.r.tests);
     setBusy(true);
     setOutcome((o) => ({ ...o, [target]: { stdout: "", stderr: "", result: null } }));
@@ -54,6 +58,7 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
     });
     setOutcome((o) => ({ ...o, [target]: { stdout: result.stdout, stderr: result.stderr, result } }));
     setBusy(false);
+    setRunningLang(null);
     if (confidence !== null) {
       actions.recordAttempt({ itemId: problem.id, topicId: problem.topicIds[0] ?? null, source: "drill", confidence, correct: result.ok });
       setConfidence(null);
@@ -121,7 +126,7 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
               <RotateCcw className="tp-icon" aria-hidden />
               Reset
             </button>
-            <button type="button" className="tp-btn tp-btn--danger tp-btn--sm" onClick={() => runtimeFor(lang).terminate()} disabled={!busy}>
+            <button type="button" className="tp-btn tp-btn--danger tp-btn--sm" onClick={() => runtimeFor(runningLang ?? lang).terminate()} disabled={!busy}>
               <Square className="tp-icon" aria-hidden />
               Stop
             </button>

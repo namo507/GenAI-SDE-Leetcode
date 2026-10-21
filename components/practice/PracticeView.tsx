@@ -132,6 +132,21 @@ function CodingBank({ set, topics, topicIndex }: { set: PracticeSet | undefined;
         </p>
       </div>
       <div className="grid gap-4">
+        {shown.length === 0 && (
+          <div className="tp-card grid justify-items-start gap-3">
+            <p className="t-body-sm">No problems match that difficulty and pattern.</p>
+            <button
+              type="button"
+              className="tp-btn tp-btn--secondary tp-btn--sm"
+              onClick={() => {
+                setDifficulty("all");
+                setPattern("all");
+              }}
+            >
+              Show all problems
+            </button>
+          </div>
+        )}
         {shown.map((p) => (
           <CodeProblemCard key={p.id} problem={p} topics={topicIndex} />
         ))}
@@ -168,7 +183,7 @@ function CodingList({ topics }: { topics: CatalogTopic[] }) {
                 const m = progress ? topicMastery(progress, t.id) : null;
                 return (
                   <li key={t.id}>
-                    <Link href={`${t.href}#run-it`} className="tp-card flex items-center justify-between gap-3 !p-4">
+                    <Link href={`${t.href}#code`} className="tp-card flex items-center justify-between gap-3 !p-4">
                       <span className="grid">
                         <span className="t-caption tp-muted">Week {t.week}</span>
                         <span className="font-semibold">{t.title}</span>
@@ -220,7 +235,7 @@ export function PracticeView({ topics, sets }: { topics: CatalogTopic[]; sets: P
           onChange={setTab}
         />
       </div>
-      <TabPanel idBase={idBase} value={tab} className="outline-none">
+      <TabPanel idBase={idBase} value={tab}>
         {tab === "review" && <ReviewSession topics={topics} />}
         {tab === "topic-drills" && <TopicDrills topics={topics} />}
         {tab === "coding" && <CodingBank set={set("coding")} topics={topics} topicIndex={topicIndex} />}

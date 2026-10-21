@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 export type TabItem<T extends string> = { id: T; label: ReactNode; icon?: ReactNode };
 
@@ -26,6 +26,18 @@ export const panelId = (idBase: string, id: string) => `${idBase}-panel-${id}`;
 export function TabList<T extends string>({ idBase, label, tabs, value, onChange, className }: TabListProps<T>) {
   const refs = useRef(new Map<T, HTMLButtonElement>());
   const layoutId = `${useId()}-indicator`;
+
+  // When the strip scrolls sideways (narrow screens), keep the selected tab in view, including after a
+  // deep link. Only the strip's own scroller moves; the page never scrolls.
+  useEffect(() => {
+    const tab = refs.current.get(value);
+    let box = tab?.parentElement ?? null;
+    while (box && box.scrollWidth <= box.clientWidth) box = box.parentElement;
+    if (!tab || !box || box === document.documentElement || box === document.body) return;
+    const t = tab.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    if (t.left < b.left || t.right > b.right) box.scrollLeft += t.left - b.left - (b.width - t.width) / 2;
+  }, [value]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     const i = tabs.findIndex((t) => t.id === value);

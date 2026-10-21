@@ -9,6 +9,7 @@ import { useClientProgress, useToday } from "@/lib/progress/hooks";
 import { GRADE_LABELS, schedule } from "@/lib/progress/srs";
 import { actions } from "@/lib/progress/store";
 import { EmptyState } from "@/components/ui/primitives";
+import { count } from "@/lib/format";
 
 const GRADE_HELP = ["Could not recall it", "Recalled with real effort", "Recalled with some thought", "Recalled instantly"];
 
@@ -19,6 +20,7 @@ export function ReviewSession({ topics }: { topics: CatalogTopic[] }) {
   const [revealed, setRevealed] = useState(false);
   const [done, setDone] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
+  const doneBox = useRef<HTMLDivElement>(null);
   const answer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function ReviewSession({ topics }: { topics: CatalogTopic[] }) {
       .sort((a, b) => a.due.localeCompare(b.due))
       .slice(0, 6);
     return (
-      <div className="grid gap-6">
+      <div ref={doneBox} tabIndex={-1} className="grid gap-6 outline-none">
         <EmptyState title={done ? `Done: ${done} ${done === 1 ? "review" : "reviews"} this session` : "No reviews due today"}>
           {upcoming.length
             ? "Each topic comes back on a growing schedule: one day, three days, then longer intervals for things you remember well."
@@ -71,13 +73,14 @@ export function ReviewSession({ topics }: { topics: CatalogTopic[] }) {
     actions.gradeReview(current.topic.id, g);
     setRevealed(false);
     setDone((n) => n + 1);
-    requestAnimationFrame(() => heading.current?.focus());
+    // The next card's heading, or the summary once the last card is graded.
+    requestAnimationFrame(() => (heading.current ?? doneBox.current)?.focus());
   };
 
   return (
     <article className="tp-card grid gap-4" aria-labelledby="review-card-title">
       <p className="t-caption tp-muted">
-        {due.length} due · {current.overdueDays > 0 ? `${current.overdueDays} days overdue` : "due today"} · reviewed {card.reps} times
+        {due.length} due · {current.overdueDays > 0 ? `${count(current.overdueDays, "day")} overdue` : "due today"} · reviewed {count(card.reps, "time")}
       </p>
       <h3 id="review-card-title" ref={heading} tabIndex={-1} className="t-heading outline-none">
         {current.topic.title}
@@ -113,7 +116,7 @@ export function ReviewSession({ topics }: { topics: CatalogTopic[] }) {
               {GRADE_LABELS.map((label, g) => {
                 const next = schedule(card, g, today);
                 return (
-                  <button key={label} type="button" className={`tp-btn ${g >= 2 ? "tp-btn--secondary" : "tp-btn--ghost border-border-strong"}`} onClick={() => grade(g)}>
+                  <button key={label} type="button" className={`tp-btn h-auto py-2 ${g >= 2 ? "tp-btn--secondary" : "tp-btn--ghost border-border-strong"}`} onClick={() => grade(g)}>
                     <span className="grid text-left leading-tight">
                       <span>{label}</span>
                       <span className="text-[12px] font-normal tp-muted">

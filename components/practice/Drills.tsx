@@ -11,6 +11,7 @@ import { Countdown, useStopwatch } from "@/components/ui/Stopwatch";
 import { RuntimeStatus } from "@/components/learn/CodeRunner";
 import { runtimeFor, useRuntimeState } from "@/components/learn/useRuntime";
 import { ConfidencePicker } from "./Confidence";
+import { count } from "@/lib/format";
 
 export type TopicIndex = Record<string, { title: string; href: string }>;
 
@@ -28,7 +29,7 @@ export function DrillShell({
   badges?: ReactNode;
 }) {
   return (
-    <article className="tp-card grid gap-4" aria-labelledby={`${drill.id}-title`}>
+    <article className="tp-card grid grid-cols-1 gap-4" aria-labelledby={`${drill.id}-title`}>
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="tp-chip">{DIFFICULTY[drill.difficulty]}</span>
@@ -61,9 +62,12 @@ export function DrillShell({
   );
 }
 
-function Verdict({ ok, children }: { ok: boolean; children: ReactNode }) {
+/** Moves focus to a verdict once it renders, so keyboard users land on the result instead of <body>. */
+const focusVerdict = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus());
+
+function Verdict({ ok, children, id }: { ok: boolean; children: ReactNode; id: string }) {
   return (
-    <div className={`tp-callout ${ok ? "tp-callout--positive" : "tp-callout--risk"}`}>
+    <div id={id} tabIndex={-1} className={`tp-callout ${ok ? "tp-callout--positive" : "tp-callout--risk"}`}>
       {ok ? <CircleCheck className="tp-icon" aria-hidden /> : <CircleAlert className="tp-icon" aria-hidden />}
       <div>
         <p className="tp-callout__title">{ok ? "Correct" : "Not yet"}</p>
@@ -147,6 +151,7 @@ export function SqlDrillCard({ drill, topics }: { drill: SqlDrill; topics: Topic
     const out = await execute();
     const v = out ? compareSqlResult(out, drill) : { ok: false, reason: "The query did not run, so it cannot match." };
     setVerdict(v);
+    focusVerdict(`${drill.id}-verdict`);
     actions.recordAttempt({ itemId: drill.id, topicId: drill.topicIds[0] ?? null, source: "drill", confidence, correct: v.ok });
   };
 
@@ -203,9 +208,13 @@ export function SqlDrillCard({ drill, topics }: { drill: SqlDrill; topics: Topic
       {(!query.trim() || confidence === null) && verdict === null && <p className="t-caption tp-muted">Write a query and rate your confidence to check it. Run query previews the result without grading.</p>}
       <div role="status" aria-live="polite" className="grid gap-3">
         {error && <p className="font-mono text-[13px] text-critical">{error}</p>}
-        {verdict && <Verdict ok={verdict.ok}>{verdict.reason}</Verdict>}
+        {verdict && (
+          <Verdict ok={verdict.ok} id={`${drill.id}-verdict`}>
+            {verdict.reason}
+          </Verdict>
+        )}
       </div>
-      {result && <ResultTable result={result} caption={`Your result: ${result.rows.length} rows${result.rows.length > 50 ? " (first 50 shown)" : ""}`} />}
+      {result && <ResultTable result={result} caption={`Your result: ${count(result.rows.length, "row")}${result.rows.length > 50 ? " (first 50 shown)" : ""}`} />}
       {verdict && (
         <details>
           <summary className="cursor-pointer t-label">Show a reference solution</summary>
@@ -230,8 +239,10 @@ export function NumericDrillCard({ drill, topics }: { drill: NumericDrill; topic
 
   const check = () => {
     if (!valid || confidence === null) return;
-    const ok = Math.abs(parsed - drill.answer) <= drill.tolerance;
+    // A tiny slack so an answer exactly at the stated tolerance is accepted despite float rounding.
+    const ok = Math.abs(parsed - drill.answer) <= drill.tolerance * (1 + 1e-9) + 1e-12;
     setVerdict(ok);
+    focusVerdict(`${drill.id}-verdict`);
     actions.recordAttempt({ itemId: drill.id, topicId: drill.topicIds[0] ?? null, source: "drill", confidence, correct: ok });
   };
 
@@ -256,13 +267,18 @@ export function NumericDrillCard({ drill, topics }: { drill: NumericDrill; topic
             onChange={(e) => setValue(e.target.value)}
             readOnly={!hydrated}
             aria-invalid={value.trim() !== "" && !valid}
-            aria-describedby={`${drill.id}-tol`}
+            aria-describedby={`${drill.id}-tol${value.trim() !== "" && !valid ? ` ${drill.id}-invalid` : ""}`}
             disabled={verdict !== null}
           />
         </div>
         <p id={`${drill.id}-tol`} className="pb-2 t-caption tp-muted">
           Accepted within ±{drill.tolerance}
         </p>
+        {value.trim() !== "" && !valid && (
+          <p id={`${drill.id}-invalid`} className="basis-full t-caption text-critical">
+            Enter a number, such as 0.39 or 1,250.
+          </p>
+        )}
       </div>
       {verdict === null ? (
         <>
@@ -291,7 +307,7 @@ export function NumericDrillCard({ drill, topics }: { drill: NumericDrill; topic
       )}
       <div role="status" aria-live="polite">
         {verdict !== null && (
-          <Verdict ok={verdict}>
+          <Verdict ok={verdict} id={`${drill.id}-verdict`}>
             The answer is {drill.answer}
             {drill.unit ? ` ${drill.unit}` : ""}. {drill.solution}
           </Verdict>
@@ -466,6 +482,7 @@ export function ChoiceDrillCard({ drill, topics }: { drill: ChoiceDrill; topics:
               onClick={() => {
                 if (selected === null || confidence === null) return;
                 setChecked(true);
+                focusVerdict(`${drill.id}-verdict`);
                 actions.recordAttempt({ itemId: drill.id, topicId: drill.topicIds[0] ?? null, source: "drill", confidence, correct: selected === drill.correct });
               }}
             >
@@ -491,7 +508,11 @@ export function ChoiceDrillCard({ drill, topics }: { drill: ChoiceDrill; topics:
         </div>
       )}
       <div role="status" aria-live="polite">
-        {checked && <Verdict ok={ok}>{drill.explanation}</Verdict>}
+        {checked && (
+          <Verdict ok={ok} id={`${drill.id}-verdict`}>
+            {drill.explanation}
+          </Verdict>
+        )}
       </div>
     </DrillShell>
   );
