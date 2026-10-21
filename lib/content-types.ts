@@ -105,8 +105,19 @@ export const ProjectSchema = z.object({
   weeks: z.number().int().min(1).max(4),
 });
 
-export const ROUND_KINDS = ["coding", "sql", "statistics", "ml", "system-design", "genai", "behavioral"] as const;
+export const ROUND_KINDS = ["coding", "sql", "statistics", "ml", "product-case", "system-design", "genai", "behavioral"] as const;
 export type RoundKind = (typeof ROUND_KINDS)[number];
+
+export const ROUND_KIND_LABELS: Record<RoundKind, string> = {
+  coding: "Coding",
+  sql: "SQL",
+  statistics: "Statistics",
+  ml: "ML",
+  "product-case": "Product case",
+  "system-design": "System design",
+  genai: "GenAI",
+  behavioral: "Behavioral",
+};
 
 export const MockLoopSchema = z.object({
   id,
@@ -149,6 +160,12 @@ export const ROUND_RUBRICS: Record<RoundKind, string[]> = {
   sql: ["Stated the grain and keys before writing", "Correct joins without fan-out", "Correct aggregation and window logic", "Explained the row count of the result"],
   statistics: ["Named assumptions", "Chose the right method", "Correct computation", "Plain-language interpretation and decision"],
   ml: ["Framed the problem and label", "Prevented leakage and chose a split", "Picked metrics from error costs", "Discussed failure modes and monitoring"],
+  "product-case": [
+    "Pinned down the metric's definition and time window",
+    "Segmented the change (mix, cohort, platform) before naming causes",
+    "Separated correlation from causation and proposed a test",
+    "Ended with a recommendation, its expected impact and its risk",
+  ],
   "system-design": ["Clarified requirements and estimated load", "Clear high-level design", "Deep dive with trade-offs", "Reliability, security and cost"],
   genai: ["Grounded the design in evaluation", "Retrieval or tool design with trade-offs", "Guardrails and failure handling", "Cost and latency estimates"],
   behavioral: ["Situation and task in under 30 seconds", "Specific actions in the first person", "Measured, honest result", "Reflection without blame"],

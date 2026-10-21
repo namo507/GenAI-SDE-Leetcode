@@ -2,7 +2,7 @@
 
 import { DOMAIN_LABELS, type Domain } from "@/lib/curriculum";
 import type { Catalog } from "@/lib/catalog";
-import { ROUND_SCORE_LABELS } from "@/lib/content-types";
+import { ROUND_KIND_LABELS, ROUND_SCORE_LABELS, type RoundKind } from "@/lib/content-types";
 import {
   METRIC_DEFINITIONS,
   READINESS_FORMULA,
@@ -215,7 +215,7 @@ export function AnalyticsView({ catalog }: { catalog: Catalog }) {
             caption="Mock interview averages by round type"
             head={["Round type", "Scored rounds", "Average self-score", "Time used"]}
             rows={[...kinds.entries()].map(([k, v]) => [
-              k.replace("-", " "),
+              ROUND_KIND_LABELS[k as RoundKind] ?? k,
               v.n,
               v.n ? `${(v.score / v.n).toFixed(1)} (${ROUND_SCORE_LABELS[Math.round(v.score / v.n)]})` : "No data",
               v.planned ? `${Math.round((v.used / v.planned) * 100)}% of planned` : "No data",

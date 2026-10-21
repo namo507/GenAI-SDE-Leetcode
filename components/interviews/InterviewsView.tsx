@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Flag, Play, Trash, X } from "lucide-react";
 import { ROLES, ROLE_LABELS } from "@/lib/curriculum";
-import { ROUND_RUBRICS, ROUND_SCORE_LABELS, type MockLoop } from "@/lib/content-types";
-import type { MockResult } from "@/lib/progress/schema";
+import { ROUND_KIND_LABELS, ROUND_RUBRICS, ROUND_SCORE_LABELS, type MockLoop } from "@/lib/content-types";
+import { todayIso, type MockResult } from "@/lib/progress/schema";
 import { actions } from "@/lib/progress/store";
 import { useClientProgress } from "@/lib/progress/hooks";
 import { Countdown, clock, useStopwatch } from "@/components/ui/Stopwatch";
@@ -14,15 +14,6 @@ import type { PracticePrompt } from "@/components/practice/PracticeCard";
 
 export type InterviewTopic = { title: string; href: string; practice: PracticePrompt[] };
 
-const KIND_LABEL: Record<string, string> = {
-  coding: "Coding",
-  sql: "SQL",
-  statistics: "Statistics",
-  ml: "ML",
-  "system-design": "System design",
-  genai: "GenAI",
-  behavioral: "Behavioral",
-};
 
 /** Deterministic question draw: each retake of a loop rotates to different items. */
 function drawQuestions(pool: PracticePrompt[], count: number, attempt: number): PracticePrompt[] {
@@ -33,7 +24,7 @@ function drawQuestions(pool: PracticePrompt[], count: number, attempt: number): 
 
 type RoundResult = MockResult["rounds"][number];
 
-function ActiveLoop({ loop, topics, attempt, onExit }: { loop: MockLoop; topics: Record<string, InterviewTopic>; attempt: number; onExit: () => void }) {
+function ActiveLoop({ loop, topics, attempt, onExit }: { loop: MockLoop; topics: Record<string, InterviewTopic>; attempt: number; onExit: (saved?: boolean) => void }) {
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState<RoundResult[]>([]);
   const [score, setScore] = useState<number | null>(null);
@@ -64,7 +55,7 @@ function ActiveLoop({ loop, topics, attempt, onExit }: { loop: MockLoop; topics:
     const all = [...results, result];
     if (last) {
       actions.saveMock({ id: actions.newId(), loopId: loop.id, startedAt, finishedAt: new Date().toISOString(), rounds: all });
-      onExit();
+      onExit(true);
       return;
     }
     setResults(all);
@@ -80,14 +71,14 @@ function ActiveLoop({ loop, topics, attempt, onExit }: { loop: MockLoop; topics:
         <p className="t-label tp-muted">
           {loop.title} · Round {index + 1} of {loop.rounds.length}
         </p>
-        <button type="button" className="tp-btn tp-btn--ghost tp-btn--sm" onClick={onExit}>
+        <button type="button" className="tp-btn tp-btn--ghost tp-btn--sm" onClick={() => onExit()}>
           <X className="tp-icon" aria-hidden />
           Leave without saving
         </button>
       </div>
       <ol className="flex gap-1" aria-label="Rounds">
         {loop.rounds.map((r, i) => (
-          <li key={i} className={`h-1.5 flex-1 rounded-full ${i < index ? "bg-brand" : i === index ? "bg-accent" : "bg-surface-sunken"}`}>
+          <li key={i} className={`h-1.5 flex-1 rounded-full ${i < index ? "bg-brand" : i === index ? "bg-brand/40" : "bg-surface-sunken"}`}>
             <span className="tp-sr-only">
               {r.title}: {i < index ? "done" : i === index ? "current" : "upcoming"}
             </span>
@@ -96,7 +87,7 @@ function ActiveLoop({ loop, topics, attempt, onExit }: { loop: MockLoop; topics:
       </ol>
       <div className="tp-card grid gap-5">
         <div className="grid gap-1">
-          <span className="tp-chip w-fit">{KIND_LABEL[round.kind]}</span>
+          <span className="tp-chip w-fit">{ROUND_KIND_LABELS[round.kind]}</span>
           <h2 id="round-title" ref={heading} tabIndex={-1} className="t-heading outline-none">
             {round.title}
           </h2>
@@ -157,12 +148,26 @@ function ActiveLoop({ loop, topics, attempt, onExit }: { loop: MockLoop; topics:
 export function InterviewsView({ loops, topics }: { loops: MockLoop[]; topics: Record<string, InterviewTopic> }) {
   const progress = useClientProgress();
   const [active, setActive] = useState<string | null>(null);
+  // After a loop is saved, say so and move focus to the history, where the new row is.
+  const [savedTitle, setSavedTitle] = useState<string | null>(null);
+  const historyHeading = useRef<HTMLHeadingElement>(null);
   const loop = loops.find((l) => l.id === active);
   const loopTitle = new Map(loops.map((l) => [l.id, l.title]));
 
   if (loop) {
     const attempt = progress ? progress.mocks.filter((m) => m.loopId === loop.id).length : 0;
-    return <ActiveLoop loop={loop} topics={topics} attempt={attempt} onExit={() => setActive(null)} />;
+    return (
+      <ActiveLoop
+        loop={loop}
+        topics={topics}
+        attempt={attempt}
+        onExit={(saved) => {
+          setActive(null);
+          setSavedTitle(saved ? loop.title : null);
+          if (saved) requestAnimationFrame(() => historyHeading.current?.focus());
+        }}
+      />
+    );
   }
 
   const mocks = progress ? [...progress.mocks].sort((a, b) => b.startedAt.localeCompare(a.startedAt)) : [];
@@ -199,15 +204,18 @@ export function InterviewsView({ loops, topics }: { loops: MockLoop[]; topics: R
       </ul>
 
       <section aria-labelledby="history" className="grid gap-3">
-        <h2 id="history" className="t-heading">
+        <h2 id="history" ref={historyHeading} tabIndex={-1} className="t-heading scroll-mt-20 outline-none">
           Your mock history
         </h2>
+        <p role="status" aria-live="polite" className={savedTitle ? "t-body-sm" : "tp-sr-only"}>
+          {savedTitle ? `Saved: ${savedTitle}. It is the first row below.` : ""}
+        </p>
         {!progress ? (
           <div className="tp-card h-24" aria-busy="true" />
         ) : mocks.length === 0 ? (
           <EmptyState title="No mock loops yet">Finish a loop to see your self-scores and time per round here and on the analytics page.</EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border">
+          <div className="relative overflow-x-auto rounded-[var(--radius-lg)] border border-border">
             <table className="w-full min-w-[640px] border-collapse text-left t-body-sm">
               <caption className="tp-sr-only">Completed mock interview loops, newest first</caption>
               <thead className="bg-surface-sunken">
@@ -221,7 +229,7 @@ export function InterviewsView({ loops, topics }: { loops: MockLoop[]; topics: R
               <tbody>
                 {mocks.map((m) => (
                   <tr key={m.id} className="border-t border-border align-top">
-                    <td className="px-3 py-2 whitespace-nowrap">{m.startedAt.slice(0, 10)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{todayIso(new Date(m.startedAt))}</td>
                     <th scope="row" className="px-3 py-2 font-semibold">
                       {loopTitle.get(m.loopId) ?? m.loopId}
                     </th>
@@ -239,7 +247,7 @@ export function InterviewsView({ loops, topics }: { loops: MockLoop[]; topics: R
                       </ul>
                     </td>
                     <td className="px-3 py-2">
-                      <button type="button" className="tp-btn tp-btn--ghost tp-btn--sm tp-btn--icon" aria-label={`Delete the ${loopTitle.get(m.loopId) ?? ""} result from ${m.startedAt.slice(0, 10)}`} onClick={() => actions.deleteMock(m.id)}>
+                      <button type="button" className="tp-btn tp-btn--ghost tp-btn--sm tp-btn--icon" aria-label={`Delete the ${loopTitle.get(m.loopId) ?? ""} result from ${todayIso(new Date(m.startedAt))}`} onClick={() => actions.deleteMock(m.id)}>
                         <Trash className="tp-icon" aria-hidden />
                       </button>
                     </td>

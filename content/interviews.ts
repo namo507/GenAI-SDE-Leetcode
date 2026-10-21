@@ -32,7 +32,7 @@ export const mockLoops: MockLoopInput[] = [
     rounds: [
       { kind: "sql", title: "SQL", minutes: 30, topicIds: ["w02-d01-joins-and-keys", "w02-d02-window-functions", "w06-d02-metrics-funnels"], questions: 2 },
       { kind: "statistics", title: "Statistics and experiments", minutes: 40, topicIds: ["w05-d02-hypothesis-testing", "w05-d03-ab-test-power", "w05-d04-bayesian-ab"], questions: 2 },
-      { kind: "ml", title: "Product and causal case", minutes: 40, topicIds: ["w06-d03-cohort-retention", "w08-d03-causal-inference", "w07-d03-classification-metrics"], questions: 2 },
+      { kind: "product-case", title: "Product and causal case", minutes: 40, topicIds: ["w06-d03-cohort-retention", "w08-d03-causal-inference", "w07-d03-classification-metrics"], questions: 2 },
       { kind: "behavioral", title: "Behavioral", minutes: 30, topicIds: ["w16-d02-behavioral-star"], questions: 2 },
     ],
   },
@@ -79,7 +79,7 @@ export const mockLoops: MockLoopInput[] = [
     summary: "SQL, a metrics and root-cause case, statistics for experiments, and behavioral.",
     rounds: [
       { kind: "sql", title: "SQL: joins, windows and conditional aggregation", minutes: 35, topicIds: ["w02-d01-joins-and-keys", "w02-d02-window-functions", "w02-d01-sql-query-order"], questions: 2 },
-      { kind: "ml", title: "Metrics and root-cause case", minutes: 35, topicIds: ["w06-d02-kpi-root-cause", "w06-d02-metrics-funnels", "w06-d03-cohort-retention"], questions: 2 },
+      { kind: "product-case", title: "Metrics and root-cause case", minutes: 35, topicIds: ["w06-d02-kpi-root-cause", "w06-d02-metrics-funnels", "w06-d03-cohort-retention"], questions: 2 },
       { kind: "statistics", title: "Experiment readout", minutes: 30, topicIds: ["w05-d02-hypothesis-testing", "w05-d03-multiple-testing"], questions: 2 },
       { kind: "behavioral", title: "Behavioral and stakeholder communication", minutes: 25, topicIds: ["w16-d02-behavioral-star", "w06-d04-visualization-storytelling"], questions: 2 },
     ],

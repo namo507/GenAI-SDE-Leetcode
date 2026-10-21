@@ -8,7 +8,8 @@ export const metadata: Metadata = { title: "Interviews", description: "Timed moc
 export default function InterviewsPage() {
   const ids = new Set(mockLoops.flatMap((l) => l.rounds.flatMap((r) => r.topicIds)));
   const topics = Object.fromEntries(
-    catalog.topics.filter((t) => ids.has(t.id)).map((t) => [t.id, { title: t.title, href: t.href, practice: t.practice }]),
+    // Lesson code exercises refer to the lesson's own program, which a mock loop does not show.
+    catalog.topics.filter((t) => ids.has(t.id)).map((t) => [t.id, { title: t.title, href: t.href, practice: t.practice.filter((q) => q.type !== "code") }]),
   );
   return (
     <>
