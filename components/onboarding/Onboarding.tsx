@@ -9,6 +9,8 @@ import { todayIso } from "@/lib/progress/schema";
 import { actions, isStorageAvailable, useHydrated, useProgress } from "@/lib/progress/store";
 import { Callout } from "@/components/ui/primitives";
 
+const readableDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+
 const MINUTES = [30, 45, 60, 90, 120, 150];
 
 export function Onboarding() {
@@ -28,7 +30,8 @@ export function Onboarding() {
       <div className="tp-card grid gap-3">
         <h2 className="t-heading">Welcome back</h2>
         <p className="t-body tp-muted">
-          Your plan started on {progress.settings.startDate} for {ROLE_LABELS[progress.settings.roles[0]!]}. You can change it any time in Settings.
+          Your plan {progress.settings.startDate > todayIso() ? "starts" : "started"} on {readableDate(progress.settings.startDate)} for {ROLE_LABELS[progress.settings.roles[0]!]}. You
+          can change it any time in Settings.
         </p>
         <div className="flex flex-wrap gap-2">
           <Link className="tp-btn tp-btn--primary" href="/dashboard">

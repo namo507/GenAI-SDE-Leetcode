@@ -925,7 +925,7 @@ export const week = defineWeek({
         { label: "Answer the case questions", minutes: 35 },
         { label: "Compare against the rubric", minutes: 15 },
       ],
-      topicIds: ["w05-d02-hypothesis-testing", "w05-d03-ab-test-power"],
+      topicIds: ["w05-d02-hypothesis-testing", "w05-d03-ab-test-power", "w05-d03-multiple-testing"],
       productionCase: {
         title: "A winning checkout test that will not replicate",
         scenario:

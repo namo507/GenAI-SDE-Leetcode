@@ -20,7 +20,9 @@ export function DayControls({ dayId, plannedMinutes }: { dayId: string; plannedM
   const [draft, setDraft] = useState<string | null>(null);
   const minutes = draft ?? (record?.minutesSpent != null ? String(record.minutesSpent) : "");
   const parsed = minutes === "" ? null : Number(minutes);
-  const invalid = parsed !== null && (!Number.isInteger(parsed) || parsed < 0 || parsed > 600);
+  // A done day always carries its minutes, so Analytics never counts it as untracked time by accident.
+  const missing = status === "done" && parsed === null;
+  const invalid = missing || (parsed !== null && (!Number.isInteger(parsed) || parsed < 0 || parsed > 600));
 
   const setStatus = (s: (typeof STATUSES)[number]["id"]) => {
     if (s === "none") actions.setDay(dayId, null);
@@ -80,8 +82,10 @@ export function DayControls({ dayId, plannedMinutes }: { dayId: string; plannedM
           Save minutes
         </button>
         <p id={`${dayId}-minutes-hint`} className={`basis-full t-caption ${invalid ? "text-critical" : "tp-muted"}`}>
-          {invalid
-            ? "Enter a whole number from 0 to 600."
+          {missing
+            ? "A done day needs its minutes. Enter 0 if you did not track the time."
+            : invalid
+              ? "Enter a whole number from 0 to 600."
             : status === "none"
               ? "Mark the day in progress or done to log time."
               : `Planned: ${plannedMinutes} minutes. Marking a day done logs the planned time unless you enter your own.`}

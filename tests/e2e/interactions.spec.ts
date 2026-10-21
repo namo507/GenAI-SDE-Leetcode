@@ -162,6 +162,8 @@ test("glossary search filters terms and prerequisite links jump to the term", as
 
 test("command palette finds a topic and opens it", async ({ page }) => {
   await page.goto("/dashboard");
+  // The shortcut is registered on hydration; wait for the page to settle before pressing it.
+  await page.waitForLoadState("networkidle");
   await page.keyboard.press("Control+k");
   const input = page.getByRole("combobox", { name: /Search topics/ });
   await expect(input).toBeFocused();
@@ -220,4 +222,33 @@ test("concept checks explain the answer after a choice", async ({ page }) => {
   await card.getByRole("radio", { name: "Sure", exact: true }).check({ force: true });
   await card.getByRole("button", { name: "Check answer" }).click();
   await expect(card.getByText("Correct", { exact: true })).toBeVisible();
+});
+
+test("command palette opens the exact match first and switches practice tabs on the same page", async ({ page }) => {
+  await page.goto("/practice#coding");
+  await page.waitForLoadState("networkidle");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: /Search topics/ }).fill("Aliases in WHERE");
+  await expect(page.getByRole("listbox", { name: "Results" }).getByRole("option").first()).toContainText("Aliases in WHERE");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tab", { selected: true })).toContainText("Concepts");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: /Search topics/ }).fill("two sum");
+  await expect(page.getByRole("listbox", { name: "Results" }).getByRole("option").first()).toContainText("Two sum");
+});
+
+test("dashboard fits a phone screen with a long weak-area title", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start my 16 weeks" }).click();
+  await page.waitForURL("**/dashboard");
+  await page.evaluate(() => {
+    const key = "techprep-os:progress:v1";
+    const p = JSON.parse(localStorage.getItem(key)!);
+    for (let i = 0; i < 3; i++) p.attempts.push({ id: `a${i}`, itemId: `i${i}`, topicId: "w04-d04-binary-search-backtracking", source: "drill", at: new Date().toISOString(), confidence: 3, correct: false });
+    localStorage.setItem(key, JSON.stringify(p));
+  });
+  await page.reload();
+  await expect(page.getByRole("link", { name: /Binary search on answers/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
 });

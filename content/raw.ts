@@ -36,6 +36,7 @@ export const rawTopics = [...weekModules.flatMap((m) => m.topics), ...extraWeeks
 
 const additions = extraWeeks.flatMap((e) => e.schedule);
 const weekOf = (id: string) => Number(id.slice(1, 3));
+const dayOf = (id: string) => Number(id.slice(5, 7));
 
 /**
  * Weeks with extra topics scheduled onto their anchor days (topic ids, tasks and minutes).
@@ -49,9 +50,12 @@ export const rawWeeks: WeekInput[] = weekModules.map((m) => {
     roles: [...new Set([...m.week.roles, ...taught.flatMap((t) => t.roles)])],
     days: m.week.days.map((d) => {
       const extra = additions.filter((a) => a.dayId === d.id);
-      if (!extra.length) return d;
+      // Interview and review days look back over the whole week, including lessons added to it later.
+      const lookBack = d.kind === "interview-simulation" || d.kind === "review" ? taught.filter((t) => dayOf(t.id) < d.day).map((t) => t.id) : [];
+      const topicIds = [...new Set([...(d.topicIds ?? []), ...extra.map((a) => a.topicId), ...lookBack])];
+      if (!extra.length) return lookBack.length ? { ...d, topicIds } : d;
       const tasks = [...d.tasks, ...extra.flatMap((a) => a.tasks)];
-      return { ...d, topicIds: [...(d.topicIds ?? []), ...extra.map((a) => a.topicId)], tasks, minutes: tasks.reduce((n, t) => n + t.minutes, 0) };
+      return { ...d, topicIds, tasks, minutes: tasks.reduce((n, t) => n + t.minutes, 0) };
     }),
   };
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Table, ChartColumn } from "lucide-react";
+import type { WeekTime } from "@/lib/progress/metrics";
 
 /** Width of an element, tracked with ResizeObserver so charts draw at real pixel size. */
 function useWidth<T extends HTMLElement>() {
@@ -116,7 +117,7 @@ function barPath(x: number, y: number, w: number, h: number) {
 }
 
 /** Planned versus logged minutes per week: two series on one minutes axis. */
-export function TimeVsPlanChart({ data, summary }: { data: { week: number; planned: number; actual: number }[]; summary: string }) {
+export function TimeVsPlanChart({ data, summary }: { data: WeekTime[]; summary: string }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [tip, setTip] = useState<Tip>(null);
   const height = 240;
@@ -168,7 +169,7 @@ export function TimeVsPlanChart({ data, summary }: { data: { week: number; plann
                       x: cx,
                       y: Math.min(y(d.planned), y(d.actual)),
                       title: `Week ${d.week}`,
-                      lines: [`Planned: ${d.planned} min`, `Logged: ${d.actual} min`, d.planned ? `${Math.round((d.actual / d.planned) * 100)}% of plan` : ""].filter(Boolean),
+                      lines: [`Planned: ${d.planned} min`, `Logged: ${d.actual} min`, d.plannedDone ? `${Math.round((d.actual / d.plannedDone) * 100)}% of the plan for days done` : ""].filter(Boolean),
                     })
                   }
                 />

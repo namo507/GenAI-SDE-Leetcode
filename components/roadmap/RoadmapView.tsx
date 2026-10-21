@@ -107,8 +107,7 @@ export function RoadmapView({ catalog }: Props) {
           <section key={phase.title} aria-labelledby={`phase-${pi}`} className="grid gap-3">
             <div className="grid gap-0.5">
               <p className="tp-eyebrow">
-                Phase {pi + 1} · Weeks {phase.weeks[0]}
-                {phase.weeks[1] !== phase.weeks[0] ? `–${phase.weeks[1]}` : ""}
+                Phase {pi + 1} · {phase.weeks[1] !== phase.weeks[0] ? `Weeks ${phase.weeks[0]}–${phase.weeks[1]}` : `Week ${phase.weeks[0]}`}
               </p>
               <h2 id={`phase-${pi}`} className="t-heading">
                 {phase.title}
@@ -174,7 +173,7 @@ export function RoadmapView({ catalog }: Props) {
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="t-caption tp-muted">Topics:</span>
                                 {topics.map((t) => (
-                                  <Link key={t.href} href={t.href} className="tp-chip hover:border-border-strong hover:text-ink">
+                                  <Link key={t.href} href={t.href} className="tp-chip tp-chip--wrap hover:border-border-strong hover:text-ink">
                                     {t.title}
                                   </Link>
                                 ))}

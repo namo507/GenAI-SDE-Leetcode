@@ -95,14 +95,26 @@ export function calibration(p: Progress): { rows: CalibrationRow[]; error: numbe
   return { rows, error };
 }
 
-export type WeekTime = { week: number; planned: number; actual: number };
+/** planned: the whole week; plannedDone: only the days marked done; actual: minutes logged on those days. */
+export type WeekTime = { week: number; planned: number; plannedDone: number; actual: number };
 
 export function timeVsPlan(p: Progress, catalog: Catalog): WeekTime[] {
+  const dayMinutes = new Map(catalog.days.map((d) => [d.id, d.minutes]));
+  const done = (id: string) => p.days[id]?.status === "done";
   return catalog.weeks.map((w) => ({
     week: w.number,
     planned: w.minutes,
-    actual: w.dayIds.reduce((s, id) => s + (p.days[id]?.status === "done" ? (p.days[id]?.minutesSpent ?? 0) : 0), 0),
+    plannedDone: w.dayIds.reduce((s, id) => s + (done(id) ? (dayMinutes.get(id) ?? 0) : 0), 0),
+    actual: w.dayIds.reduce((s, id) => s + (done(id) ? (p.days[id]?.minutesSpent ?? 0) : 0), 0),
   }));
+}
+
+/** "45 min", "1 h" or "3 h 15 min". */
+export function formatMinutes(total: number): string {
+  const m = Math.max(0, Math.round(total));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
 }
 
 export function readiness(p: Progress, catalog: Catalog, today: string) {

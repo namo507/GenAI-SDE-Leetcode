@@ -951,7 +951,7 @@ export const week = defineWeek({
         { label: "Answer the case questions", minutes: 35 },
         { label: "Compare against the rubric", minutes: 15 },
       ],
-      topicIds: ["w08-d01-clustering-pca", "w08-d03-causal-inference"],
+      topicIds: ["w08-d02-recommender-systems", "w08-d01-clustering-pca", "w08-d03-causal-inference"],
       productionCase: {
         title: "Recommendations for a marketplace with constant new listings",
         scenario:

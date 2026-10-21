@@ -100,12 +100,10 @@ export default async function DayPage({ params }: Params) {
             </SectionHeading>
             <ol className="grid gap-2">
               {day.tasks.map((t, i) => (
-                <li key={t.label} className="flex items-start justify-between gap-4 border-b border-border pb-2 t-body">
-                  <span>
-                    <span className="mr-2 font-mono tp-muted">{i + 1}.</span>
-                    {t.label}
-                  </span>
-                  <span className="shrink-0 t-body-sm tp-muted">{t.minutes} min</span>
+                <li key={t.label} className="flex items-baseline gap-2 border-b border-border pb-2 t-body">
+                  <span className="shrink-0 font-mono tp-muted">{i + 1}.</span>
+                  <span className="min-w-0 flex-1">{t.label}</span>
+                  <span className="shrink-0 pl-2 t-body-sm tp-muted">{t.minutes} min</span>
                 </li>
               ))}
             </ol>

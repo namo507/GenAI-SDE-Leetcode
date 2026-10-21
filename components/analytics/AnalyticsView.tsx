@@ -16,6 +16,7 @@ import {
   readiness,
   retention,
   timeVsPlan,
+  formatMinutes,
 } from "@/lib/progress/metrics";
 import { daysBetween } from "@/lib/progress/srs";
 import { useClientProgress, useToday } from "@/lib/progress/hooks";
@@ -41,7 +42,7 @@ export function AnalyticsView({ catalog }: { catalog: Catalog }) {
   const recentReviews = progress.reviewLog.filter((r) => daysBetween(r.at, today) <= 60).length;
   const doneDays = Object.values(progress.days).filter((d) => d.status === "done").length;
   const loggedTotal = time.reduce((s, w) => s + w.actual, 0);
-  const plannedDone = time.reduce((s, w) => s + (w.actual > 0 ? w.planned : 0), 0);
+  const plannedDone = time.reduce((s, w) => s + w.plannedDone, 0);
 
   const contributions = [
     { name: "Mastery", value: ready.parts.mastery, weight: READINESS_WEIGHTS.mastery, used: ready.parts.mastery ?? 0 },
@@ -187,7 +188,7 @@ export function AnalyticsView({ catalog }: { catalog: Catalog }) {
         title="Time against plan"
         description={
           loggedTotal
-            ? `You logged ${Math.round(loggedTotal / 60)} hours on days marked done, against ${Math.round(plannedDone / 60)} hours planned for those weeks.`
+            ? `You logged ${formatMinutes(loggedTotal)} on ${doneDays} ${doneDays === 1 ? "day" : "days"} marked done, against ${formatMinutes(plannedDone)} planned for those days.`
             : "Mark days done on the roadmap and log your minutes to compare them with the plan."
         }
         legend={

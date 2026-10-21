@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Check, Clock, Repeat, Search, Target } from "lucide-react";
 import { CATEGORIES, DAY_KIND_LABELS, ROLE_LABELS, categoryOf } from "@/lib/curriculum";
 import type { Catalog } from "@/lib/catalog";
 import { TOTAL_DAYS, averageConfidence, completion, dueReviews, overallMastery, planPace, retention, todaysDay, topicMastery, weakAreas } from "@/lib/progress/metrics";
 import { dayStatus, useClientProgress, useToday } from "@/lib/progress/hooks";
+import type { DayRecord } from "@/lib/progress/schema";
 import { actions } from "@/lib/progress/store";
 import { Callout, Meter, pct } from "@/components/ui/primitives";
 import { DayTile } from "@/components/roadmap/DayTile";
@@ -19,6 +21,8 @@ const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } };
 export function DashboardView({ catalog }: { catalog: Catalog }) {
   const progress = useClientProgress();
   const today = useToday();
+  // What "Mark done" replaced, so undo restores it instead of guessing a status.
+  const [beforeDone, setBeforeDone] = useState<{ dayId: string; record: DayRecord | null } | null>(null);
   if (!progress || !today)
     return (
       <div className="grid gap-6" aria-busy="true" aria-label="Loading your plan">
@@ -56,11 +60,11 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
   }).filter((c) => c.total > 0);
 
   return (
-    <motion.div className="grid gap-8" initial="hidden" animate="show" transition={{ staggerChildren: 0.05 }}>
+    <motion.div className="grid gap-8 [&>*]:min-w-0" initial="hidden" animate="show" transition={{ staggerChildren: 0.05 }}>
       <motion.header variants={fadeUp} className="flex flex-wrap items-end justify-between gap-4">
         <div className="grid gap-1">
           <p className="t-body-sm tp-muted">{longDate(today)}</p>
-          <h1 className="t-title">{notStarted ? "Your plan starts soon" : finished ? "You finished the 16 weeks" : `Week ${current.week} · Day ${current.day}`}</h1>
+          <h1 className="t-title">{notStarted ? "Your plan starts soon" : finished ? (doneCount >= TOTAL_DAYS ? "You finished the 16 weeks" : "Your 16 weeks have ended") : `Week ${current.week} · Day ${current.day}`}</h1>
           <p className="t-body-sm tp-muted">
             {settings.onboarded ? settings.roles.map((r) => ROLE_LABELS[r]).join(" · ") : "Default plan for every role"} · {settings.minutesPerDay} min/day ·{" "}
             <Link className="tp-link" href={settings.onboarded ? "/settings" : "/"}>
@@ -119,7 +123,7 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
               {current.topicIds.map((id) => {
                 const t = topicsById.get(id);
                 return t ? (
-                  <Link key={id} href={t.href} className="tp-chip hover:border-border-strong hover:text-ink">
+                  <Link key={id} href={t.href} className="tp-chip tp-chip--wrap hover:border-border-strong hover:text-ink">
                     {t.title}
                   </Link>
                 ) : null;
@@ -133,12 +137,27 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
             <ArrowRight className="tp-icon" aria-hidden />
           </Link>
           {status === "done" ? (
-            <button type="button" className="tp-btn tp-btn--secondary" onClick={() => actions.setDay(current.id, "in-progress", progress.days[current.id]?.minutesSpent ?? null)}>
+            <button
+              type="button"
+              className="tp-btn tp-btn--secondary"
+              onClick={() => {
+                const prev = beforeDone?.dayId === current.id ? beforeDone.record : null;
+                actions.setDay(current.id, prev?.status ?? null, prev?.minutesSpent ?? null);
+                setBeforeDone(null);
+              }}
+            >
               <Check className="tp-icon text-positive" aria-hidden />
               Done (undo)
             </button>
           ) : (
-            <button type="button" className="tp-btn tp-btn--secondary" onClick={() => actions.setDay(current.id, "done", progress.days[current.id]?.minutesSpent ?? current.minutes)}>
+            <button
+              type="button"
+              className="tp-btn tp-btn--secondary"
+              onClick={() => {
+                setBeforeDone({ dayId: current.id, record: progress.days[current.id] ?? null });
+                actions.setDay(current.id, "done", progress.days[current.id]?.minutesSpent ?? current.minutes);
+              }}
+            >
               <Check className="tp-icon" aria-hidden />
               Mark done
             </button>
@@ -177,7 +196,7 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
       </motion.section>
 
       <motion.div variants={fadeUp} className="grid gap-4 lg:grid-cols-2">
-        <section aria-labelledby="reviews" className="tp-card grid content-start gap-3">
+        <section aria-labelledby="reviews" className="tp-card grid min-w-0 content-start gap-3 [&>*]:min-w-0">
           <div className="flex items-center justify-between gap-2">
             <h2 id="reviews" className="t-subheading inline-flex items-center gap-2">
               <Repeat className="tp-icon tp-muted" aria-hidden />
@@ -191,10 +210,10 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
             </p>
           ) : (
             <>
-              <ul className="grid gap-1.5 t-body-sm">
+              <ul className="grid grid-cols-1 gap-1.5 t-body-sm">
                 {due.slice(0, 5).map((d) => (
                   <li key={d.topic.id} className="flex justify-between gap-3">
-                    <Link className="tp-link truncate" href={d.topic.href}>
+                    <Link className="tp-link min-w-0 truncate" href={d.topic.href}>
                       {d.topic.title}
                     </Link>
                     <span className="shrink-0 tp-muted">{d.overdueDays === 0 ? "today" : `${d.overdueDays}d late`}</span>
@@ -207,7 +226,7 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
             </>
           )}
         </section>
-        <section aria-labelledby="weak" className="tp-card grid content-start gap-3">
+        <section aria-labelledby="weak" className="tp-card grid min-w-0 content-start gap-3 [&>*]:min-w-0">
           <h2 id="weak" className="t-subheading inline-flex items-center gap-2">
             <Target className="tp-icon tp-muted" aria-hidden />
             Focus next
@@ -215,10 +234,10 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
           {weak.length === 0 ? (
             <p className="t-body-sm tp-muted">Weak areas appear when recent mastery is under 70% or a review is overdue.</p>
           ) : (
-            <ul className="grid gap-1.5 t-body-sm">
+            <ul className="grid grid-cols-1 gap-1.5 t-body-sm">
               {weak.map((w) => (
                 <li key={w.topic.id} className="flex justify-between gap-3">
-                  <Link className="tp-link truncate" href={w.topic.href}>
+                  <Link className="tp-link min-w-0 truncate" href={w.topic.href}>
                     {w.topic.title}
                   </Link>
                   <span className="shrink-0 tp-muted">
