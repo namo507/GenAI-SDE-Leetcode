@@ -44,7 +44,8 @@ export default async function LearnPage({ params }: Params) {
   const toc: TocItem[] = [
     { id: "explanation", label: "Explanation" },
     { id: "workflow", label: "Workflow animation" },
-    ...(impl ? [{ id: "code", label: "Code in Python and R" }] : topic.referenceSnippet ? [{ id: "reference-code", label: "Reference code" }] : []),
+    ...(impl ? [{ id: "code", label: "Code in Python and R" }] : []),
+    ...(topic.referenceSnippet ? [{ id: "reference-code", label: "Reference code" }] : []),
     { id: "practice", label: "Practice" },
     ...(terms.length ? [{ id: "key-terms", label: "Key terms" }] : []),
     { id: "references", label: "References" },
@@ -114,7 +115,7 @@ export default async function LearnPage({ params }: Params) {
                     const p = getTopic(id)!;
                     return (
                       <li key={id}>
-                        <Link className="tp-chip hover:border-border-strong hover:text-ink" href={topicHref(p)}>
+                        <Link className="tp-chip tp-chip--wrap hover:border-border-strong hover:text-ink" href={topicHref(p)}>
                           {p.title}
                         </Link>
                       </li>
@@ -231,7 +232,8 @@ export default async function LearnPage({ params }: Params) {
           {terms.length > 0 && (
             <section aria-labelledby="key-terms" className="grid gap-3">
               <SectionHeading id="key-terms" title="Key terms" />
-              <dl className="grid gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border bg-border sm:grid-cols-2">
+              {/* An odd last term spans both columns so the hairline grid never shows an empty cell. */}
+              <dl className="grid gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border bg-border sm:grid-cols-2 sm:[&>div:last-child:nth-child(odd)]:col-span-2">
                 {terms.map((g) => (
                   <div key={g.slug} className="grid content-start gap-1 bg-surface p-4">
                     <dt>

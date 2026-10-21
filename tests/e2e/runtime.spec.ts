@@ -45,6 +45,24 @@ test("an infinite loop is stopped by the time limit", async ({ page }) => {
   await expect(verdict).toContainText("time limit");
 });
 
+for (const [lang, code] of [
+  ["Python", "print('start')\nwhile True:\n    pass"],
+  ["R", "cat('start\\n')\nrepeat {}"],
+] as const) {
+  test(`${lang}: Stop ends a running program right away`, async ({ page }) => {
+    await page.goto("/learn/foundations/python-r-idioms");
+    const runner = page.locator(".tp-runner");
+    await runner.getByRole("tab", { name: lang }).click();
+    await page.getByLabel(new RegExp(`${lang} code, editable`)).fill(code);
+    await runner.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(runner.locator(".tp-runner__status")).toContainText("Running", { timeout: 240_000 });
+    await page.waitForTimeout(1000);
+    await runner.getByRole("button", { name: "Stop" }).click();
+    await expect(runner.locator(".tp-runner__verdict")).toContainText("Stopped before the program finished", { timeout: 3000 });
+    await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+  });
+}
+
 test("a SQL drill runs in SQLite and is graded", async ({ page }) => {
   await page.goto("/practice#sql");
   const card = page.locator("article", { has: page.getByRole("heading", { name: "Customers who never ordered" }) });

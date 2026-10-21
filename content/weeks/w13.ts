@@ -767,7 +767,7 @@ export const topics = [
         "At 4,096 tokens and batch 8, that is 16 GiB versus 4 GiB.",
         "Continuous batching admits new requests as others finish; paged attention (as in vLLM) allocates cache in blocks to avoid fragmentation.",
       ],
-      complexity: "Per decode step O(sequence length) attention reads per layer; total generation O(n^2) attention work without caching, O(n) recomputation saved with it.",
+      complexity: "With the cache, step t projects only the new token and attends over t cached keys: O(t·d) attention per layer, O(n²·d) for n tokens. Without it, every step reprocesses the whole prefix: O(t²·d) per step, O(n³·d) overall. The cache trades that compute for memory that grows linearly with sequence length.",
       tradeoffs: [
         { option: "Grouped-query or multi-query attention", choose: "High-throughput serving with long contexts.", cost: "Some quality trade-off; decided at training time." },
         { option: "KV cache quantization (8-bit)", choose: "Memory-bound serving.", cost: "Small accuracy loss; kernel support needed." },

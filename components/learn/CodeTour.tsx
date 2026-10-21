@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { Pause, Play, StepBack, StepForward } from "lucide-react";
-import { findAnchorLine, type Language, type WalkthroughStep } from "@/lib/curriculum";
+import { resolveWalkthrough, type Language, type WalkthroughStep } from "@/lib/curriculum";
 import { tokenize } from "@/components/ui/CodeBlock";
 import { useReducedMotionPreference } from "@/components/shell/Providers";
 
@@ -16,16 +16,6 @@ function subscribeVisibility(cb: () => void) {
   return () => document.removeEventListener("visibilitychange", cb);
 }
 
-/** Resolves each step's anchor to a line range, searching forward from the previous step. */
-export function resolveSteps(code: string, steps: WalkthroughStep[], lang: Language) {
-  let from = 0;
-  return steps.map((s) => {
-    const start = Math.max(0, findAnchorLine(code, s[lang], from));
-    from = start;
-    const span = lang === "python" ? s.pythonLines : s.rLines;
-    return { start, end: start + span - 1, eli5: s.eli5 };
-  });
-}
 
 /**
  * "Explain like I'm five" tour of a program: a highlight band slides to the
@@ -38,7 +28,7 @@ export function CodeTour({ code, steps, lang, label }: { code: string; steps: Wa
   const [playing, setPlaying] = useState(false);
   const scroller = useRef<HTMLPreElement>(null);
   const lines = useMemo(() => code.split("\n"), [code]);
-  const resolved = useMemo(() => resolveSteps(code, steps, lang), [code, steps, lang]);
+  const resolved = useMemo(() => resolveWalkthrough(code, steps, lang), [code, steps, lang]);
   const current = resolved[Math.min(index, resolved.length - 1)]!;
   const last = resolved.length - 1;
 
@@ -112,8 +102,7 @@ export function CodeTour({ code, steps, lang, label }: { code: string; steps: Wa
       <div className="tp-tour__panel">
         <div className="flex items-center justify-between gap-2">
           <span className="tp-eyebrow">
-            Step {index + 1} of {resolved.length} · lines {current.start + 1}
-            {current.end > current.start ? `–${current.end + 1}` : ""}
+            Step {index + 1} of {resolved.length} · {current.end > current.start ? `lines ${current.start + 1}–${current.end + 1}` : `line ${current.start + 1}`}
           </span>
         </div>
         <div aria-live="polite" aria-atomic="true" className="min-h-[100px]">

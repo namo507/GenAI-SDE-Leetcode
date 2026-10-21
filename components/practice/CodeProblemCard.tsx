@@ -181,7 +181,7 @@ export function CodeProblemCard({ problem, topics }: { problem: CodeProblem; top
               <div className="tp-runner__verdict" data-match={result.ok}>
                 {result.ok ? <CircleCheck className="tp-icon" aria-hidden /> : <CircleAlert className="tp-icon" aria-hidden />}
                 <span>
-                  {result.ok ? "All tests passed." : RUNNERS_OFF ? "Code execution is off in this preview." : result.timedOut ? "Stopped: the time limit was reached." : "Some tests failed. Read the FAIL lines above."}
+                  {result.ok ? "All tests passed." : RUNNERS_OFF ? "Code execution is off in this preview." : result.timedOut ? "Stopped: the time limit was reached." : result.terminated ? "Stopped before the tests finished." : "Some tests failed. Read the FAIL lines above."}
                   <span className="tp-muted font-normal"> ({(result.ms / 1000).toFixed(2)} s)</span>
                 </span>
               </div>

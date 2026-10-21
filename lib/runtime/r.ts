@@ -78,6 +78,8 @@ class RRuntime implements Runtime {
   private busy = false;
   private readyDetail = "R ready";
   private generation = 0;
+  /** Settles the run in progress when the learner presses Stop. */
+  private stopActive: (() => void) | null = null;
 
   snapshot() {
     return this.state;
@@ -152,10 +154,18 @@ class RRuntime implements Runtime {
         const timeout = new Promise<"timeout">((resolve) => {
           timer = setTimeout(() => resolve("timeout"), timeoutMs);
         });
+        // Closing webR never settles captureR, so Stop needs its own way to end the race.
+        const stopped = new Promise<"stopped">((resolve) => {
+          this.stopActive = () => resolve("stopped");
+        });
         const outcome = await Promise.race([
           shelter.captureR(code, { withAutoprint: true, captureStreams: true, captureConditions: true, captureGraphics: false, throwJsException: false }),
           timeout,
+          stopped,
         ]);
+        if (outcome === "stopped") {
+          return { ...result, terminated: true, error: "Run stopped. The R runtime will reload on the next run.", ms: Math.round(performance.now() - started) };
+        }
         if (outcome === "timeout") {
           this.terminate(`Stopped after ${timeoutMs / 1000} s. The R runtime was restarted; check for an infinite loop.`);
           return { ...result, timedOut: true, terminated: true, error: `Stopped after ${timeoutMs / 1000} s. The runtime was restarted; check for an infinite loop.`, ms: Math.round(performance.now() - started) };
@@ -190,6 +200,7 @@ class RRuntime implements Runtime {
         result.ok = failed === null;
         result.error = failed;
       } finally {
+        this.stopActive = null;
         if (timer) clearTimeout(timer);
         // The webR worker may already be closed after a timeout; purging is then a no-op.
         Promise.resolve()
@@ -208,6 +219,7 @@ class RRuntime implements Runtime {
   }
 
   terminate(reason = "R runtime stopped. It will reload on the next run.") {
+    this.stopActive?.();
     this.generation++;
     this.webR?.close();
     this.webR = null;

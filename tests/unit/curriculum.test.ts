@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { curriculum, glossary, mockLoops, practiceSets, projects } from "@/content";
-import { CATEGORIES, CurriculumSchema, DAY_KINDS, FlowSchema, R_PACKAGE_ALLOWLIST, ROLES, SCHEMA_VERSION, categoryOf } from "@/lib/curriculum";
+import { CATEGORIES, CurriculumSchema, DAY_KINDS, FlowSchema, R_PACKAGE_ALLOWLIST, ROLES, SCHEMA_VERSION, categoryOf, findAnchorLine, resolveWalkthrough } from "@/lib/curriculum";
 import { buildSchemaDocument } from "@/lib/schema-doc";
 import { SUPPORTED_R_EXPECTATIONS, rTestProgram } from "@/lib/runtime/harness";
 import { referencedRPackages } from "@/lib/runtime/r";
@@ -49,6 +49,22 @@ describe("curriculum contract", () => {
     }
     expect(programs.length).toBeGreaterThanOrEqual(150);
     for (const [id, code] of programs) expect(referencedRPackages(code).filter((p) => !allowed.includes(p)), id).toEqual([]);
+  });
+
+  it("highlights walkthrough lines inside the program, where the anchor first appears", () => {
+    for (const t of curriculum.topics.filter((x) => x.implementation)) {
+      const impl = t.implementation!;
+      for (const lang of ["python", "r"] as const) {
+        const code = impl[lang].code;
+        const count = code.split("\n").length;
+        for (const [i, r] of resolveWalkthrough(code, impl.walkthrough ?? [], lang).entries()) {
+          const step = impl.walkthrough![i]!;
+          const span = lang === "python" ? step.pythonLines : step.rLines;
+          expect(r.start, `${t.id} ${lang} step ${i + 1}`).toBe(findAnchorLine(code, step[lang]));
+          expect(r.start + span - 1, `${t.id} ${lang} step ${i + 1} runs past the end`).toBeLessThan(count);
+        }
+      }
+    }
   });
 
   it("gives every paired example an ELI5 code walkthrough that covers both languages", () => {

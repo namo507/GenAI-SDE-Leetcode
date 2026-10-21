@@ -5,7 +5,7 @@ import { useEffect, useId, useState } from "react";
 
 export type TocItem = { id: string; label: string };
 
-/** Section links with scrollspy: the section nearest the top of the viewport is marked current. */
+/** Section links with scrollspy: the section being read is marked current. */
 export function TableOfContents({ items, variant }: { items: TocItem[]; variant: "rail" | "inline" }) {
   const [current, setCurrent] = useState(items[0]?.id ?? "");
   const layoutId = useId();
@@ -13,15 +13,27 @@ export function TableOfContents({ items, variant }: { items: TocItem[]; variant:
   useEffect(() => {
     const els = items.map((i) => document.getElementById(i.id)).filter((e): e is HTMLElement => e !== null);
     if (!els.length) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setCurrent(visible[0].target.id);
-      },
-      { rootMargin: "-80px 0px -60% 0px", threshold: 0 },
-    );
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
+    let frame = 0;
+    // The current section is the last heading that has passed under the sticky header; at the bottom of
+    // the page it is the last one, even when that heading can never scroll that far up.
+    const update = () => {
+      frame = 0;
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      let id = els[0]!.id;
+      for (const el of els) if (el.getBoundingClientRect().top <= 96) id = el.id;
+      setCurrent(atBottom ? els[els.length - 1]!.id : id);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [items]);
 
   if (variant === "inline") {

@@ -171,6 +171,20 @@ export function findAnchorLine(code: string, anchor: string, from = 0): number {
   return -1;
 }
 
+/**
+ * Line ranges a walkthrough highlights. Each anchor resolves to its first
+ * occurrence (the same rule the schema validates), so a function explained by
+ * one step is never confused with a later call to it.
+ */
+export function resolveWalkthrough(code: string, steps: WalkthroughStep[], lang: Language): { start: number; end: number; eli5: string }[] {
+  const last = code.split("\n").length - 1;
+  return steps.map((s) => {
+    const start = Math.max(0, findAnchorLine(code, s[lang]));
+    const span = lang === "python" ? s.pythonLines : s.rLines;
+    return { start, end: Math.min(last, start + span - 1), eli5: s.eli5 };
+  });
+}
+
 export const ImplementationSchema = z.object({
   /** One sentence: the problem both programs solve. */
   problem: nonEmpty,

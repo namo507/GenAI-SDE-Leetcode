@@ -253,7 +253,7 @@ export const w10: ExtraWeek = {
         },
         eli5Trace: [
           "Thirteen kids ask to use the slide, with a big crowd arriving just before and after the 10-second bell.",
-          "The 'count per bell period' rule lets 5 in before the bell and 5 more right after it: 9 rides in under 2 seconds.",
+          "The 'count per bell period' rule already let one kid ride at 2 seconds, so it lets 4 more in just before the bell (the kid at 9.8 is turned away) and 5 right after it: 9 rides in under 2 seconds.",
           "The 'remember every ride for 10 seconds' rule never lets more than 5 ride in any 10 seconds.",
           "The ticket jar lets 5 kids go in a quick burst because the jar was full, then everyone waits for new tickets.",
         ],

@@ -53,7 +53,13 @@ function Verdict({ outcome, expected }: { outcome: Outcome; expected: string }) 
     match = false;
     text = RUNNERS_OFF
       ? "Code execution is off in this preview."
-      : r.timedOut ? "Stopped: time limit reached." : r.truncated ? "Stopped: output limit reached." : "The program raised an error.";
+      : r.timedOut
+        ? "Stopped: time limit reached."
+        : r.truncated
+          ? "Stopped: output limit reached."
+          : r.terminated
+            ? "Stopped before the program finished."
+            : "The program raised an error.";
   } else if (outputsMatch(r.stdout, expected)) {
     match = true;
     text = "Output matches the expected output.";

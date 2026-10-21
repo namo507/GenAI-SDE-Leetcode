@@ -41,31 +41,66 @@ const StepNodeView = memo(function StepNodeView({ id, data }: NodeProps<StepNode
   );
 });
 
-/** Where the line between two node centers crosses the border of `node`. */
-function borderPoint(node: InternalNode, other: InternalNode) {
-  const w = (node.measured.width ?? 0) / 2;
-  const h = (node.measured.height ?? 0) / 2;
-  const cx = node.internals.positionAbsolute.x + w;
-  const cy = node.internals.positionAbsolute.y + h;
-  const ox = other.internals.positionAbsolute.x + (other.measured.width ?? 0) / 2;
-  const oy = other.internals.positionAbsolute.y + (other.measured.height ?? 0) / 2;
-  if (!w || !h) return { x: cx, y: cy };
-  const xx = (ox - cx) / (2 * w) - (oy - cy) / (2 * h);
-  const yy = (ox - cx) / (2 * w) + (oy - cy) / (2 * h);
+type Point = { x: number; y: number };
+type Box = { x: number; y: number; w: number; h: number };
+
+const boxOf = (n: InternalNode): Box => ({ x: n.internals.positionAbsolute.x, y: n.internals.positionAbsolute.y, w: n.measured.width ?? 0, h: n.measured.height ?? 0 });
+const centerOf = (b: Box): Point => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+
+/** Where the line from the center of `box` toward `toward` crosses the border of `box`. */
+function borderPoint(box: Box, toward: Point): Point {
+  const w = box.w / 2;
+  const h = box.h / 2;
+  const c = centerOf(box);
+  if (!w || !h) return c;
+  const xx = (toward.x - c.x) / (2 * w) - (toward.y - c.y) / (2 * h);
+  const yy = (toward.x - c.x) / (2 * w) + (toward.y - c.y) / (2 * h);
   const a = 1 / (Math.abs(xx) + Math.abs(yy) || 1);
-  return { x: w * (a * xx + a * yy) + cx, y: h * (-a * xx + a * yy) + cy };
+  return { x: w * (a * xx + a * yy) + c.x, y: h * (-a * xx + a * yy) + c.y };
 }
 
-/** A straight edge between node borders, so any layout (row, column, fan) reads cleanly. */
+/** True when the straight line from a to b passes through any of the boxes (with a little margin). */
+function crossesAny(a: Point, b: Point, boxes: Box[]) {
+  for (let i = 1; i < 24; i++) {
+    const x = a.x + ((b.x - a.x) * i) / 24;
+    const y = a.y + ((b.y - a.y) * i) / 24;
+    if (boxes.some((r) => x > r.x - 6 && x < r.x + r.w + 6 && y > r.y - 6 && y < r.y + r.h + 6)) return true;
+  }
+  return false;
+}
+
+/**
+ * An edge between node borders. It is straight unless it would run through
+ * another node or on top of an edge going the other way; then it bows into a
+ * curve so loops and skips stay visible and their labels clear the nodes.
+ */
 const FloatingEdge = memo(function FloatingEdge({ id, source, target, label }: EdgeProps<StepEdge>) {
   const { active, visited } = useContext(StepContext);
   const reduced = useReducedMotionPreference();
   const s = useInternalNode(source);
   const t = useInternalNode(target);
+  const lookup = useStore((st) => st.nodeLookup);
+  const reverse = useStore((st) => st.edges.some((e) => e.source === target && e.target === source));
   if (!s || !t) return null;
-  const a = borderPoint(s, t);
-  const b = borderPoint(t, s);
-  const angle = Math.atan2(b.y - a.y, b.x - a.x);
+  const sb = boxOf(s);
+  const tb = boxOf(t);
+  const others = [...lookup.values()].filter((n) => n.id !== source && n.id !== target).map(boxOf);
+  const sc = centerOf(sb);
+  const tc = centerOf(tb);
+  let control: Point | null = null;
+  if (reverse || crossesAny(sc, tc, others)) {
+    const dx = tc.x - sc.x;
+    const dy = tc.y - sc.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    // Bow to the same side of the direction of travel: in a row, edges pointing back arc above it and
+    // forward skips arc below, and a pair of edges going both ways separates.
+    const bend = -Math.min(130, Math.max(46, dist * 0.32));
+    control = { x: (sc.x + tc.x) / 2 + (dy / dist) * bend, y: (sc.y + tc.y) / 2 - (dx / dist) * bend };
+  }
+  const a = borderPoint(sb, control ?? tc);
+  const b = borderPoint(tb, control ?? sc);
+  const from = control ?? a;
+  const angle = Math.atan2(b.y - from.y, b.x - from.x);
   const tip = { x: b.x - 3 * Math.cos(angle), y: b.y - 3 * Math.sin(angle) };
   const back = (d: number, side: number) => ({
     x: tip.x - 9 * Math.cos(angle) + side * d * Math.sin(angle),
@@ -74,11 +109,22 @@ const FloatingEdge = memo(function FloatingEdge({ id, source, target, label }: E
   const l = back(4.5, 1);
   const r = back(4.5, -1);
   const lineEnd = back(0, 0);
-  const [path, labelX, labelY] = getStraightPath({ sourceX: a.x, sourceY: a.y, targetX: lineEnd.x, targetY: lineEnd.y });
+  let path: string;
+  let labelX: number;
+  let labelY: number;
+  if (control) {
+    path = `M ${a.x} ${a.y} Q ${control.x} ${control.y} ${lineEnd.x} ${lineEnd.y}`;
+    labelX = (a.x + 2 * control.x + lineEnd.x) / 4;
+    labelY = (a.y + 2 * control.y + lineEnd.y) / 4;
+  } else {
+    [path, labelX, labelY] = getStraightPath({ sourceX: a.x, sourceY: a.y, targetX: lineEnd.x, targetY: lineEnd.y });
+    // A label on a short edge along a row would sit on top of both nodes; lift it above the row instead.
+    if (label && Math.abs(tc.y - sc.y) < 8) labelY = Math.min(sb.y, tb.y) - 12;
+  }
   const isActive = active.has(id);
   return (
     <>
-      <BaseEdge id={id} path={path} label={label} labelX={labelX} labelY={labelY} className="tp-edge" data-active={isActive} data-visited={visited.has(id)} />
+      <BaseEdge id={id} path={path} label={label} labelX={labelX} labelY={labelY} labelBgPadding={[4, 2]} labelBgBorderRadius={4} className="tp-edge" data-active={isActive} data-visited={visited.has(id)} />
       <path d={`M ${tip.x} ${tip.y} L ${l.x} ${l.y} L ${r.x} ${r.y} Z`} className="tp-edge-arrow" data-active={isActive} data-visited={visited.has(id)} aria-hidden />
       {isActive && !reduced && (
         // A dot travelling source to target shows the direction data moves in this step.
@@ -105,7 +151,7 @@ function FitOnResize() {
   const width = useStore((s) => s.width);
   const height = useStore((s) => s.height);
   useEffect(() => {
-    if (width && height) void fitView({ padding: 0.12, duration: 0 });
+    if (width && height) void fitView({ padding: FIT_PADDING, duration: 0 });
   }, [width, height, fitView]);
   return null;
 }
@@ -118,6 +164,11 @@ const useDocumentHidden = () => useSyncExternalStore(subscribeVisibility, () => 
 
 const SPEEDS = [0.5, 1, 1.5, 2] as const;
 const STEP_MS = 1600;
+/** Spreads layouts a little so neighbouring nodes never touch and every edge has visible length. */
+const X_SPREAD = 1.12;
+/** The smallest zoom the diagram renders at; narrower screens scroll sideways instead of shrinking text. */
+const MIN_ZOOM = 0.8;
+const FIT_PADDING = 0.12;
 
 export function FlowPlayer({ flow }: { flow: Flow }) {
   const { settings } = useProgress();
@@ -128,6 +179,7 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
   const canvas = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const autoplayed = useRef(false);
   const last = flow.steps.length - 1;
 
@@ -137,7 +189,7 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
       flow.nodes.map((n) => ({
         id: n.id,
         type: "step",
-        position: { x: n.x, y: n.y },
+        position: { x: n.x * X_SPREAD, y: n.y },
         data: { label: n.label, ...(n.detail ? { detail: n.detail } : {}) },
         ariaLabel: n.detail ? `${n.label}: ${n.detail}` : n.label,
         draggable: false,
@@ -159,6 +211,17 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
       })),
     [flow.edges, labels],
   );
+
+  // Canvas size that keeps the diagram at MIN_ZOOM or more (node boxes are at most 200 by about 64 units).
+  const minSize = useMemo(() => {
+    const xs = flow.nodes.map((n) => n.x * X_SPREAD);
+    const ys = flow.nodes.map((n) => n.y);
+    const pad = 1 + 2 * FIT_PADDING;
+    return {
+      width: Math.ceil((Math.max(...xs) - Math.min(...xs) + 200) * pad * MIN_ZOOM),
+      height: Math.ceil((Math.max(...ys) - Math.min(...ys) + 64) * pad * MIN_ZOOM),
+    };
+  }, [flow.nodes]);
 
   const stepState = useMemo<StepState>(() => {
     const visited = new Set<string>();
@@ -192,6 +255,19 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
     return () => io.disconnect();
   }, [settings.autoplayFlows, reduced]);
 
+  // When the diagram is wider than the screen, keep the step's first node in view.
+  useEffect(() => {
+    const el = scroller.current;
+    const first = flow.steps[index]?.nodes[0];
+    if (!el || !first || el.scrollWidth <= el.clientWidth) return;
+    const node = el.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(first)}"]`);
+    if (!node) return;
+    const box = node.getBoundingClientRect();
+    const view = el.getBoundingClientRect();
+    const left = el.scrollLeft + box.left - view.left - (view.width - box.width) / 2;
+    el.scrollTo({ left, behavior: reduced ? "auto" : "smooth" });
+  }, [index, flow.steps, reduced]);
+
   const togglePlay = () => {
     if (playing) setPlaying(false);
     else {
@@ -210,7 +286,8 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
       <figcaption id={`${uid}-title`} className="border-b border-border px-4 py-3 t-subheading">
         {flow.title}
       </figcaption>
-      <div className="tp-flow__canvas" ref={canvas}>
+      <div className="tp-flow__scroller" ref={scroller}>
+      <div className="tp-flow__canvas" ref={canvas} style={{ minWidth: `max(100%, ${minSize.width}px)`, minHeight: minSize.height }}>
         <StepContext.Provider value={stepState}>
           <ReactFlow
             defaultNodes={nodes}
@@ -230,7 +307,7 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
             zoomOnDoubleClick={false}
             preventScrolling={false}
             fitView
-            fitViewOptions={{ padding: 0.12 }}
+            fitViewOptions={{ padding: FIT_PADDING }}
             minZoom={0.2}
             maxZoom={1.25}
             ariaLabelConfig={ARIA}
@@ -238,6 +315,7 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
             <FitOnResize />
           </ReactFlow>
         </StepContext.Provider>
+      </div>
       </div>
       <div className="tp-flow__controls">
         <button type="button" className="tp-btn tp-btn--primary tp-btn--sm" onClick={togglePlay} aria-label={playing ? "Pause" : index >= last ? "Replay from the start" : "Play"}>

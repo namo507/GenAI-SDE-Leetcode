@@ -94,6 +94,8 @@
   white-space: nowrap;
 }
 .tp-chip .tp-icon { width: 14px; height: 14px; }
+/* Chips that carry a lesson title: wrap instead of widening the page at phone width. */
+.tp-chip--wrap { max-width: 100%; white-space: normal; overflow-wrap: anywhere; border-radius: var(--radius-md); padding-block: 3px; text-align: left; }
 .tp-chip--brand { background: var(--brand-soft); border-color: transparent; color: var(--brand-ink); }
 .tp-chip--accent { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); }
 .tp-chip--positive { background: var(--positive-soft); border-color: transparent; color: var(--positive); }
@@ -193,6 +195,8 @@ button.tp-chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); 
 .tp-select { appearance: none; padding-right: 34px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
 .tp-input::placeholder, .tp-textarea::placeholder { color: var(--ink-muted); }
 .tp-input[aria-invalid="true"] { border-color: var(--critical); }
+.tp-input:disabled, .tp-select:disabled, .tp-textarea:disabled { background: var(--surface-sunken); border-color: var(--border); color: var(--ink-muted); cursor: not-allowed; }
+.tp-input:disabled::placeholder, .tp-textarea:disabled::placeholder { color: var(--ink-muted); opacity: 0.7; }
 .tp-check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--target-min); font: 400 14px/21px var(--font-sans); cursor: pointer; }
 .tp-check input { width: 16px; height: 16px; accent-color: var(--brand); }
 
@@ -341,8 +345,9 @@ button.tp-day { font: inherit; text-align: left; cursor: pointer; }
 
 /* ---------- FlowPlayer ---------- */
 .tp-flow { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
+.tp-flow__scroller { overflow-x: auto; overscroll-behavior-x: contain; border-bottom: 1px solid var(--border); }
 .tp-flow__canvas {
-  position: relative; height: 340px; border-bottom: 1px solid var(--border);
+  position: relative; height: 340px;
   background-color: var(--bg);
   background-image: radial-gradient(circle, color-mix(in srgb, var(--ink-muted) 22%, transparent) 1px, transparent 1.2px);
   background-size: 18px 18px;
