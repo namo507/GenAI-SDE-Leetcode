@@ -46,6 +46,24 @@ function write(next: Progress) {
   }
 }
 
+/** A plain-language reason an imported file was rejected, instead of the validator's internal path. */
+function importProblem(data: unknown, path: PropertyKey[]): string {
+  const base = "That file is not a TechPrep OS progress export";
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return `${base}: it does not contain a progress object.`;
+  const version = (data as { version?: unknown }).version;
+  if (version !== PROGRESS_VERSION) return `${base} from this version of the app (expected format ${PROGRESS_VERSION}, found ${version === undefined ? "none" : String(version)}).`;
+  const section: Record<string, string> = {
+    settings: "the settings",
+    days: "the roadmap days",
+    attempts: "the practice attempts",
+    reviews: "the spaced-review cards",
+    reviewLog: "the review history",
+    mocks: "the mock interview results",
+  };
+  const where = section[String(path[0] ?? "")];
+  return `${base}: ${where ? `${where} are` : "part of it is"} in an unexpected format. Export again from Settings and import that file.`;
+}
+
 function emit() {
   listeners.forEach((l) => l());
 }
@@ -152,10 +170,7 @@ export const actions = {
       return "That file is not valid JSON.";
     }
     const parsed = ProgressSchema.safeParse(data);
-    if (!parsed.success) {
-      const first = parsed.error.issues[0];
-      return `That file does not match the TechPrep OS progress format (version ${PROGRESS_VERSION}): ${first?.path.join(".") || "root"} ${first?.message ?? ""}`.trim();
-    }
+    if (!parsed.success) return importProblem(data, parsed.error.issues[0]?.path ?? []);
     update(() => parsed.data);
     return null;
   },

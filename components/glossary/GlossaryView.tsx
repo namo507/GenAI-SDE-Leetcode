@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { Search } from "lucide-react";
 import { DOMAIN_LABELS, type Domain, type GlossaryTerm } from "@/lib/curriculum";
 import { EmptyState } from "@/components/ui/primitives";
@@ -19,17 +19,32 @@ export function GlossaryView({ terms, topics }: { terms: GlossaryTerm[]; topics:
     .filter((t) => (domain === "all" || t.domain === domain) && (!q || norm(`${t.term} ${t.definition} ${t.seniorNote ?? ""}`).includes(q)))
     .sort((a, b) => a.term.localeCompare(b.term));
 
-  const jump = (e: MouseEvent<HTMLAnchorElement>, slug: string) => {
-    e.preventDefault();
+  /** Clears the filters so the term is rendered, then scrolls to it and focuses it. */
+  const reveal = (slug: string) => {
     setQuery("");
     setDomain("all");
-    window.history.replaceState(null, "", `#${slug}`);
     requestAnimationFrame(() => {
       const el = document.getElementById(slug);
       el?.scrollIntoView({ block: "start" });
       el?.focus();
     });
   };
+
+  const jump = (e: MouseEvent<HTMLAnchorElement>, slug: string) => {
+    e.preventDefault();
+    window.history.replaceState(null, "", `#${slug}`);
+    reveal(slug);
+  };
+
+  // A hash change from outside the list (the search palette, Back) also has to reach a filtered-out term.
+  useEffect(() => {
+    const onHash = () => {
+      const slug = decodeURIComponent(window.location.hash.slice(1));
+      if (slug && terms.some((t) => t.slug === slug)) reveal(slug);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [terms]);
 
   return (
     <div className="grid gap-6">
@@ -65,7 +80,7 @@ export function GlossaryView({ terms, topics }: { terms: GlossaryTerm[]; topics:
       ) : (
         <ul className="grid gap-3">
           {shown.map((t) => (
-            <li key={t.slug} id={t.slug} tabIndex={-1} className="tp-card scroll-mt-24 grid gap-2 outline-none focus-visible:outline-2 focus-visible:outline-[var(--focus)]">
+            <li key={t.slug} id={t.slug} tabIndex={-1} className="tp-card tp-term scroll-mt-24 grid gap-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="t-subheading">{t.term}</h2>
                 <span className="tp-chip">{DOMAIN_LABELS[t.domain]}</span>

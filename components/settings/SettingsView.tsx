@@ -7,6 +7,7 @@ import { ROLES, ROLE_LABELS, type Role } from "@/lib/curriculum";
 import { todayIso } from "@/lib/progress/schema";
 import { actions, isStorageAvailable, useHydrated, useProgress } from "@/lib/progress/store";
 import { Callout } from "@/components/ui/primitives";
+import { count } from "@/lib/format";
 
 function Segmented<T extends string>({ label, options, value, onChange }: { label: string; options: { id: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   const id = useId();
@@ -50,9 +51,15 @@ export function SettingsView() {
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetDone, setResetDone] = useState(false);
+  // Minutes are typed digit by digit, so keep the raw text until it is a valid value or the field loses focus.
+  const [minutesDraft, setMinutesDraft] = useState<string | null>(null);
+  const resetButton = useRef<HTMLButtonElement>(null);
+  const resetStatus = useRef<HTMLParagraphElement>(null);
 
   if (!hydrated) return <div className="grid gap-6" aria-busy="true"><div className="tp-card h-64" /><div className="tp-card h-48" /></div>;
 
+  const minutesNumber = Number(minutesDraft);
+  const minutesInvalid = minutesDraft !== null && !(minutesDraft !== "" && Number.isInteger(minutesNumber) && minutesNumber >= 15 && minutesNumber <= 240);
   const primary = settings.roles[0]!;
   const setPrimary = (r: Role) => actions.updateSettings({ roles: [r, ...settings.roles.filter((x) => x !== r)] });
   const toggleRole = (r: Role, on: boolean) =>
@@ -77,6 +84,7 @@ export function SettingsView() {
       return;
     }
     const error = actions.importJson(await f.text());
+    setResetDone(false);
     setImportMsg(error ? { ok: false, text: error } : { ok: true, text: `Imported ${f.name}. Your previous progress in this browser was replaced.` });
   };
 
@@ -96,7 +104,7 @@ export function SettingsView() {
       )}
 
       <Section title="Plan" description="Changes apply immediately and are saved in this browser.">
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid items-start gap-5 md:grid-cols-2">
           <div className="tp-field">
             <label htmlFor="s-primary" className="tp-field__label">
               Main target role
@@ -145,13 +153,21 @@ export function SettingsView() {
               min={15}
               max={240}
               step={5}
-              value={settings.minutesPerDay}
+              value={minutesDraft ?? settings.minutesPerDay}
+              aria-invalid={minutesInvalid}
+              aria-describedby="s-minutes-hint"
               onChange={(e) => {
+                setMinutesDraft(e.target.value);
                 const n = Number(e.target.value);
-                if (Number.isInteger(n) && n >= 15 && n <= 240) actions.updateSettings({ minutesPerDay: n });
+                if (e.target.value !== "" && Number.isInteger(n) && n >= 15 && n <= 240) actions.updateSettings({ minutesPerDay: n });
               }}
+              onBlur={() => setMinutesDraft(null)}
             />
-            <span className="tp-field__hint">15 to 240. The dashboard warns when a day is planned longer than this.</span>
+            <span id="s-minutes-hint" className={`tp-field__hint ${minutesInvalid ? "!text-critical" : ""}`}>
+              {minutesInvalid
+                ? `Enter a whole number from 15 to 240. ${settings.minutesPerDay} is kept until then.`
+                : "15 to 240. The dashboard warns when a day is planned longer than this."}
+            </span>
           </div>
         </div>
       </Section>
@@ -192,7 +208,7 @@ export function SettingsView() {
         </label>
       </Section>
 
-      <Section title="Your data" description={`Stored only in this browser: ${counts.days} days logged, ${counts.attempts} practice attempts, ${counts.reviews} topics in review, ${counts.mocks} mock loops.`}>
+      <Section title="Your data" description={`Stored only in this browser: ${count(counts.days, "day")} logged, ${count(counts.attempts, "practice attempt")}, ${count(counts.reviews, "topic")} in review, ${count(counts.mocks, "mock loop")}.`}>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="tp-btn tp-btn--secondary" onClick={exportProgress}>
             <Download className="tp-icon" aria-hidden />
@@ -218,6 +234,7 @@ export function SettingsView() {
             <div>
               <button
                 type="button"
+                ref={resetButton}
                 className="tp-btn tp-btn--danger"
                 onClick={() => {
                   setConfirmReset(true);
@@ -240,16 +257,25 @@ export function SettingsView() {
                   actions.reset();
                   setConfirmReset(false);
                   setResetDone(true);
+                  requestAnimationFrame(() => resetStatus.current?.focus());
                 }}
               >
                 Yes, erase everything
               </button>
-              <button type="button" className="tp-btn tp-btn--secondary tp-btn--sm" onClick={() => setConfirmReset(false)} autoFocus>
+              <button
+                type="button"
+                className="tp-btn tp-btn--secondary tp-btn--sm"
+                onClick={() => {
+                  setConfirmReset(false);
+                  requestAnimationFrame(() => resetButton.current?.focus());
+                }}
+                autoFocus
+              >
                 Cancel
               </button>
             </div>
           )}
-          <p role="status" className="t-body-sm">
+          <p ref={resetStatus} tabIndex={-1} role="status" className="t-body-sm outline-none">
             {resetDone ? "Progress erased. You are starting fresh." : ""}
           </p>
         </div>

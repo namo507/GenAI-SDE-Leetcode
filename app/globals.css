@@ -39,6 +39,8 @@
   html {
     background: var(--bg);
     -webkit-text-size-adjust: 100%;
+    /* Keeps focused or targeted elements clear of the sticky mobile header. */
+    scroll-padding-top: 4rem;
   }
 
   body {

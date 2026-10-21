@@ -200,6 +200,9 @@ button.tp-chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); 
 .tp-check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--target-min); font: 400 14px/21px var(--font-sans); cursor: pointer; }
 .tp-check input { width: 16px; height: 16px; accent-color: var(--brand); }
 
+/* A glossary term reached by a link or #slug is marked, so the reader sees where they landed. */
+.tp-term:target { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+
 /* ---------- Card ---------- */
 .tp-card {
   background: var(--surface);

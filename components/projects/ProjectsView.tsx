@@ -44,7 +44,7 @@ export function ProjectsView({ projects, topics }: { projects: Project[]; topics
                 {p.title}
               </h2>
               <p className="prose-measure t-body">{p.summary}</p>
-              <dl className="grid gap-3 sm:grid-cols-2">
+              <dl className="grid items-start gap-3 sm:grid-cols-2">
                 {[
                   ["Who it is for", p.user],
                   ["Decision it supports", p.decision],

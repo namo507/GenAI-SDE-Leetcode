@@ -73,7 +73,7 @@ export function ChartFrame({ id, title, description, legend, chart, table }: { i
 
 export function DataTable({ caption, head, rows }: { caption: string; head: string[]; rows: (string | number)[][] }) {
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border">
+    <div className="overflow-x-auto rounded-[var(--radius-md)] border border-border" tabIndex={0} role="region" aria-label={caption}>
       <table className="w-full border-collapse text-left t-body-sm">
         <caption className="tp-sr-only">{caption}</caption>
         <thead className="bg-surface-sunken">
