@@ -349,6 +349,11 @@ button.tp-day { font: inherit; text-align: left; cursor: pointer; }
 /* ---------- FlowPlayer ---------- */
 .tp-flow { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
 .tp-flow__scroller { overflow-x: auto; overscroll-behavior-x: contain; border-bottom: 1px solid var(--border); }
+/* A classic, always visible scrollbar: overlay scrollbars (macOS, touch) hide the fact that a wide diagram scrolls. */
+.tp-flow__scroller::-webkit-scrollbar { height: 10px; }
+.tp-flow__scroller::-webkit-scrollbar-track { background: var(--surface-sunken); }
+.tp-flow__scroller::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; border: 2px solid var(--surface-sunken); }
+@supports not selector(::-webkit-scrollbar) { .tp-flow__scroller { scrollbar-width: thin; scrollbar-color: var(--border-strong) var(--surface-sunken); } }
 .tp-flow__canvas {
   position: relative; height: 340px;
   background-color: var(--bg);

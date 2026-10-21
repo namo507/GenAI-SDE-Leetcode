@@ -9,6 +9,7 @@ import {
   ReactFlow,
   getStraightPath,
   useInternalNode,
+  useNodesInitialized,
   useReactFlow,
   useStore,
   type Edge,
@@ -145,6 +146,18 @@ const ARIA = {
   "edge.a11yDescription.default": "Diagram connection between two nodes.",
 };
 
+/** Reports the measured size of the diagram, which replaces the estimate once the nodes have rendered. */
+function ReportBounds({ onBounds }: { onBounds: (size: { width: number; height: number }) => void }) {
+  const ready = useNodesInitialized();
+  const { getNodes, getNodesBounds } = useReactFlow();
+  useEffect(() => {
+    if (!ready) return;
+    const b = getNodesBounds(getNodes());
+    onBounds({ width: b.width, height: b.height });
+  }, [ready, getNodes, getNodesBounds, onBounds]);
+  return null;
+}
+
 /** Refit the diagram whenever the canvas changes size, since panning and zooming are off. */
 function FitOnResize() {
   const { fitView } = useReactFlow();
@@ -164,11 +177,43 @@ const useDocumentHidden = () => useSyncExternalStore(subscribeVisibility, () => 
 
 const SPEEDS = [0.5, 1, 1.5, 2] as const;
 const STEP_MS = 1600;
-/** Spreads layouts a little so neighbouring nodes never touch and every edge has visible length. */
-const X_SPREAD = 1.12;
 /** The smallest zoom the diagram renders at; narrower screens scroll sideways instead of shrinking text. */
-const MIN_ZOOM = 0.8;
-const FIT_PADDING = 0.12;
+const MIN_ZOOM = 0.75;
+const FIT_PADDING = "24px";
+const PAD_PX = 24;
+/** Clear space kept between neighbouring nodes in a row, in diagram units. */
+const NODE_GAP = 48;
+/** Share of the authored spacing kept between columns that share no row. */
+const KEEP_SPACING = 0.4;
+
+/** A generous estimate of a node's rendered width (13px semibold label, 12px mono detail, 88 to 200 px). */
+const nodeWidth = (n: Flow["nodes"][number]) => Math.min(200, Math.max(88, Math.max(n.label.length * 7.4, (n.detail?.length ?? 0) * 7.3) + 28));
+const nodeHeight = (n: Flow["nodes"][number]) => (n.detail ? 58 : 38);
+
+/**
+ * Authored layouts space columns evenly for the widest label, which leaves
+ * short labels far apart and the diagram too wide for the column. This keeps
+ * the column order and alignment but closes each column up to its neighbours,
+ * leaving NODE_GAP between nodes that share a row or a mostly level edge.
+ */
+function compactColumns(flow: Flow): Map<string, number> {
+  const { nodes } = flow;
+  const linked = new Set(flow.edges.flatMap((e) => [`${e.source}>${e.target}`, `${e.target}>${e.source}`]));
+  const needsGap = (a: Flow["nodes"][number], b: Flow["nodes"][number]) =>
+    Math.abs(a.y - b.y) < 64 || (linked.has(`${a.id}>${b.id}`) && Math.abs(a.y - b.y) < b.x - a.x);
+  const cols = [...new Set(nodes.map((n) => n.x))].sort((a, b) => a - b);
+  const at = new Map<number, number>();
+  cols.forEach((x, i) => {
+    const prev = cols[i - 1];
+    let next = prev === undefined ? x : at.get(prev)! + (x - prev) * KEEP_SPACING;
+    for (const b of nodes) {
+      if (b.x !== x) continue;
+      for (const a of nodes) if (a.x < x && needsGap(a, b)) next = Math.max(next, at.get(a.x)! + nodeWidth(a) + NODE_GAP);
+    }
+    at.set(x, next);
+  });
+  return new Map(nodes.map((n) => [n.id, at.get(n.x)!]));
+}
 
 export function FlowPlayer({ flow }: { flow: Flow }) {
   const { settings } = useProgress();
@@ -183,20 +228,24 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
   const autoplayed = useRef(false);
   const last = flow.steps.length - 1;
 
+  const [boxWidth, setBoxWidth] = useState(0);
+
   const labels = useMemo(() => new Map(flow.nodes.map((n) => [n.id, n.label])), [flow.nodes]);
+  const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
+  const xs = useMemo(() => compactColumns(flow), [flow]);
   const nodes = useMemo<StepNode[]>(
     () =>
       flow.nodes.map((n) => ({
         id: n.id,
         type: "step",
-        position: { x: n.x * X_SPREAD, y: n.y },
+        position: { x: xs.get(n.id)!, y: n.y },
         data: { label: n.label, ...(n.detail ? { detail: n.detail } : {}) },
         ariaLabel: n.detail ? `${n.label}: ${n.detail}` : n.label,
         draggable: false,
         connectable: false,
         selectable: false,
       })),
-    [flow.nodes],
+    [flow.nodes, xs],
   );
   const edges = useMemo<StepEdge[]>(
     () =>
@@ -212,16 +261,30 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
     [flow.edges, labels],
   );
 
-  // Canvas size that keeps the diagram at MIN_ZOOM or more (node boxes are at most 200 by about 64 units).
+  // Canvas size that keeps the diagram at MIN_ZOOM or more: estimated for the first paint, then measured.
   const minSize = useMemo(() => {
-    const xs = flow.nodes.map((n) => n.x * X_SPREAD);
-    const ys = flow.nodes.map((n) => n.y);
-    const pad = 1 + 2 * FIT_PADDING;
+    const left = Math.min(...flow.nodes.map((n) => xs.get(n.id)!));
+    const right = Math.max(...flow.nodes.map((n) => xs.get(n.id)! + nodeWidth(n)));
+    const top = Math.min(...flow.nodes.map((n) => n.y));
+    const bottom = Math.max(...flow.nodes.map((n) => n.y + nodeHeight(n)));
+    const size = measured ?? { width: right - left, height: bottom - top };
     return {
-      width: Math.ceil((Math.max(...xs) - Math.min(...xs) + 200) * pad * MIN_ZOOM),
-      height: Math.ceil((Math.max(...ys) - Math.min(...ys) + 64) * pad * MIN_ZOOM),
+      // A box this wide shows the whole diagram at about MIN_ZOOM by giving up some of the fit padding.
+      tight: Math.ceil(size.width * MIN_ZOOM + PAD_PX),
+      width: Math.ceil(size.width * MIN_ZOOM + 2 * PAD_PX),
+      height: Math.ceil(size.height * MIN_ZOOM + 2 * PAD_PX),
     };
-  }, [flow.nodes]);
+  }, [flow.nodes, xs, measured]);
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBoxWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  // Narrower boxes scroll sideways, and say so, since overlay scrollbars stay hidden until used.
+  const overflows = boxWidth > 0 && boxWidth < minSize.tight;
 
   const stepState = useMemo<StepState>(() => {
     const visited = new Set<string>();
@@ -242,8 +305,9 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
 
   // Optional autoplay (Settings), once, when the diagram first scrolls into view. Never with reduced motion.
   useEffect(() => {
-    if (!settings.autoplayFlows || reduced || autoplayed.current || !canvas.current) return;
-    const el = canvas.current;
+    // Observe the scrolling box, not the canvas: a canvas wider than the screen is never 60% visible.
+    if (!settings.autoplayFlows || reduced || autoplayed.current || !scroller.current) return;
+    const el = scroller.current;
     const io = new IntersectionObserver(([entry]) => {
       if (entry?.isIntersecting && !autoplayed.current) {
         autoplayed.current = true;
@@ -283,11 +347,14 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
   const step = flow.steps[index]!;
   return (
     <figure className="tp-flow m-0" aria-labelledby={`${uid}-title`}>
-      <figcaption id={`${uid}-title`} className="border-b border-border px-4 py-3 t-subheading">
-        {flow.title}
+      <figcaption className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-border px-4 py-3">
+        <span id={`${uid}-title`} className="t-subheading">
+          {flow.title}
+        </span>
+        {overflows && <span className="t-caption tp-muted">Scroll sideways to see the whole diagram</span>}
       </figcaption>
       <div className="tp-flow__scroller" ref={scroller}>
-      <div className="tp-flow__canvas" ref={canvas} style={{ minWidth: `max(100%, ${minSize.width}px)`, minHeight: minSize.height }}>
+      <div className="tp-flow__canvas" ref={canvas} style={{ minWidth: boxWidth && !overflows ? undefined : `max(100%, ${minSize.width}px)`, minHeight: minSize.height }}>
         <StepContext.Provider value={stepState}>
           <ReactFlow
             defaultNodes={nodes}
@@ -313,6 +380,7 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
             ariaLabelConfig={ARIA}
           >
             <FitOnResize />
+            <ReportBounds onBounds={setMeasured} />
           </ReactFlow>
         </StepContext.Provider>
       </div>
