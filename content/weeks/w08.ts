@@ -13,7 +13,7 @@ export const topics = [
     objectives: [
       "Run Lloyd's k-means and explain why initialization matters",
       "Compute principal components of a 2D dataset from its covariance matrix",
-      "Contrast PCA with t-SNE and UMAP for visualization",
+      "Contrast PCA with t-SNE and UMAP: objectives, neighborhood controls and misleading map distances",
     ],
     summary:
       "Clustering groups similar points without labels; k-means alternates between assigning points to the nearest center and moving centers to the mean. PCA finds the directions of greatest variance, which compresses data and reveals structure.",
@@ -26,9 +26,11 @@ export const topics = [
         "Each stand moves to the average spot of its customers.",
         "Repeat until the stands stop moving.",
         "For PCA, find the direction along the beach where people are most spread out; that one line describes most of where they are.",
+        "For t-SNE, draw a small paper map where friends who stood close still sit together. Strong friendship links pull nearby people together while the map also makes room between them.",
+        "For UMAP, make a web of nearby friends first, then lay the web on paper while trying to keep strong links. Choosing more neighbors asks the map to care about a wider community.",
       ],
       analogyLimit:
-        "Stands that start in bad places can get stuck serving odd groups, so real k-means runs many random starts. And clusters only exist if the data has them: k-means will happily cut a uniform crowd into k pieces.",
+        "Stands that start in bad places can get stuck serving odd groups, so real k-means runs many random starts. And clusters only exist if the data has them: k-means will happily cut a uniform crowd into k pieces. A t-SNE or UMAP map can stretch gaps and change apparent group sizes; two islands on paper do not prove two natural populations.",
     },
     senior: {
       definition:
@@ -42,9 +44,13 @@ export const topics = [
         "Initialization here is deterministic (one point from each region) so both languages match; production uses k-means++ with several restarts.",
         "For a 2x2 covariance [[a, b], [b, d]], eigenvalues are (a + d) / 2 plus or minus sqrt(((a - d) / 2)^2 + b^2).",
         "Explained variance ratio = lambda_1 / (lambda_1 + lambda_2) says how much one dimension preserves.",
-        "t-SNE and UMAP preserve local neighborhoods for visualization; distances between far clusters in their plots are not meaningful.",
+        "t-SNE turns high-dimensional pairwise distances into conditional Gaussian neighbor probabilities, choosing a local bandwidth to target perplexity (an effective neighborhood size). It symmetrizes these affinities, then minimizes KL divergence to heavy-tailed Student-t affinities in the map. The asymmetry of KL strongly penalizes separating high-affinity neighbors.",
+        "UMAP builds a k-nearest-neighbor graph, normalizes distances with local offsets rho and scales sigma, and assigns fuzzy memberships exp(-max(0, distance - rho) / sigma). It combines directed memberships p and q by p + q - p*q, then fits a low-dimensional fuzzy graph with an attractive/repulsive cross-entropy objective and negative sampling.",
+        "The toy calculation fixes Gaussian sigma = 1: neighbors at distances 1 and 2 get probabilities 0.8176 and 0.1824. For UMAP-style local memberships with distance 2, rho = 1 and sigma = 1, p = exp(-1); combining two such directions gives 0.6004. This demonstrates affinities, not either full embedding optimizer.",
+        "Compare PCA's linear variance objective with nonlinear neighborhood objectives. t-SNE perplexity, UMAP n_neighbors and min_dist, random seed, scaling and the chosen metric all affect a map. Larger min_dist discourages tightly packed map points; it is not a cluster-count control.",
+        "Use neighborhood-preservation checks, multiple settings and original-feature validation. Fit preprocessing only on training data when embeddings feed a model. Standard t-SNE is mainly an exploratory fit without a general native out-of-sample transform; UMAP implementations support transform, whose behavior still needs validation.",
       ],
-      complexity: "k-means: O(n k d) per iteration. PCA via covariance: O(n d^2 + d^3); via randomized SVD for large d.",
+      complexity: "k-means: O(n k d) per iteration. PCA via covariance: O(n d^2 + d^3); via randomized SVD for large d. Dense pairwise affinity construction costs O(n²) space; scalable t-SNE and UMAP implementations use tree or approximate-neighbor methods, so end-to-end cost depends on the implementation and settings.",
       tradeoffs: [
         { option: "k-means", choose: "Roughly spherical, similar-sized clusters at scale.", cost: "Needs k; fails on elongated or nested shapes." },
         { option: "DBSCAN or HDBSCAN", choose: "Arbitrary shapes and noise points.", cost: "Density parameters; struggles with varying density." },
@@ -62,11 +68,11 @@ export const topics = [
         "k-means alternates assigning points to the nearest centroid and recomputing centroids as means; it converges to a local optimum, so I use k-means++ and several restarts and pick k with the elbow or silhouette plus business sense. PCA takes eigenvectors of the covariance matrix; eigenvalues tell me how much variance each component keeps. For visualization I would use UMAP but not trust distances between clusters.",
     },
     implementation: {
-      problem: "Cluster nine 2D points into three groups with Lloyd's k-means, then compute PCA eigenvalues and explained variance.",
+      problem: "Cluster nine points, compute PCA variance, and calculate fixed-scale Gaussian neighbor probabilities and a UMAP-style fuzzy union. The final two calculations isolate affinity mechanisms; they do not run full t-SNE or UMAP.",
       input: "points (1,1) (1.5,2) (2,1.2) (8,8) (8.5,9) (9,8.2) (1,8) (1.5,9) (2,8.5); initial centers: points 1, 4 and 7",
       python: {
         code: code`
-          from math import sqrt
+          from math import exp, sqrt
 
           POINTS = [(1, 1), (1.5, 2), (2, 1.2), (8, 8), (8.5, 9), (9, 8.2), (1, 8), (1.5, 9), (2, 8.5)]
 
@@ -95,12 +101,24 @@ export const topics = [
               return mid + rad, mid - rad
 
 
+          def gaussian_neighbors(distances: list[float], sigma: float = 1.0) -> list[float]:
+              weights = [exp(-d * d / (2 * sigma * sigma)) for d in distances]
+              total = sum(weights)
+              return [w / total for w in weights]
+
+
+          def fuzzy_union(p: float, q: float) -> float:
+              return p + q - p * q
+
+
           labels, centers, iters = kmeans(POINTS, [POINTS[0], POINTS[3], POINTS[6]])
           print(f"k-means converged after {iters} iterations")
           for c, (cx, cy) in enumerate(centers):
               print(f"cluster {c}: center=({cx:.2f}, {cy:.2f}) size={labels.count(c)}")
           l1, l2 = pca_2d(POINTS)
           print(f"pca eigenvalues: {l1:.4f} {l2:.4f} explained by PC1: {100 * l1 / (l1 + l2):.1f}%")
+          print("fixed-scale neighbor probabilities: " + " ".join(f"{p:.4f}" for p in gaussian_neighbors([1, 2])))
+          print(f"fuzzy union: {fuzzy_union(exp(-1), exp(-1)):.4f}")
         `,
       },
       r: {
@@ -118,6 +136,12 @@ export const topics = [
             list(labels = labels, centers = centers, iter = max_iter)
           }
 
+          gaussian_neighbors <- function(distances, sigma = 1) {
+            weights <- exp(-distances^2 / (2 * sigma^2))
+            weights / sum(weights)
+          }
+          fuzzy_union <- function(p, q) p + q - p * q
+
           km <- kmeans_lloyd(pts, pts[c(1, 4, 7), ])
           cat(sprintf("k-means converged after %d iterations\n", km$iter))
           for (c in 1:3) {
@@ -125,6 +149,8 @@ export const topics = [
           }
           ev <- eigen(cov(pts), symmetric = TRUE)$values
           cat(sprintf("pca eigenvalues: %.4f %.4f explained by PC1: %.1f%%\n", ev[1], ev[2], 100 * ev[1] / sum(ev)))
+          cat(sprintf("fixed-scale neighbor probabilities: %s\n", paste(sprintf("%.4f", gaussian_neighbors(c(1, 2))), collapse = " ")))
+          cat(sprintf("fuzzy union: %.4f\n", fuzzy_union(exp(-1), exp(-1))))
         `,
       },
       expectedOutput: code`
@@ -133,9 +159,19 @@ export const topics = [
         cluster 1: center=(8.50, 8.40) size=3
         cluster 2: center=(1.50, 8.50) size=3
         pca eigenvalues: 18.6283 6.4392 explained by PC1: 74.3%
+        fixed-scale neighbor probabilities: 0.8176 0.1824
+        fuzzy union: 0.6004
       `,
       tests: {
         python: code`
+          def test_neighbor_affinities():
+              p = gaussian_neighbors([1, 2])
+              assert abs(sum(p) - 1) < 1e-12 and p[0] > p[1]
+              assert fuzzy_union(0, 0.4) == 0.4
+              assert abs(fuzzy_union(1, 0.4) - 1) < 1e-12
+              assert abs(fuzzy_union(0.6, 0.25) - 0.7) < 1e-12
+
+
           def test_each_point_is_closest_to_its_center():
               for p, lab in zip(POINTS, labels):
                   dists = [(p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 for c in centers]
@@ -150,6 +186,15 @@ export const topics = [
               assert abs((l1 + l2) - (var_x + var_y)) < 1e-9
         `,
         r: code`
+          test_that("neighbor probabilities and fuzzy union preserve their bounds", {
+            p <- gaussian_neighbors(c(1, 2))
+            expect_equal(sum(p), 1)
+            expect_gt(p[1], p[2])
+            expect_equal(fuzzy_union(0, 0.4), 0.4)
+            expect_equal(fuzzy_union(1, 0.4), 1)
+            expect_equal(fuzzy_union(0.6, 0.25), 0.7)
+          })
+
           test_that("built-in Lloyd k-means agrees", {
             ref <- kmeans(pts, centers = pts[c(1, 4, 7), ], algorithm = "Lloyd")
             expect_equal(unname(ref$centers), unname(km$centers))
@@ -165,6 +210,7 @@ export const topics = [
         "Everyone walks to the nearest stand: three people per stand.",
         "Each stand moves to the middle of its three customers; nobody wants to switch after that, so it stops.",
         "The people are spread mostly along one direction, so a single line (PC1) captures about three quarters of the spread.",
+        "On the neighbor map, the closer friend gets most of the weight. Combining two directional links makes one undirected friendship weight. These are the building blocks, not a complete map.",
       ],
       complexity: { time: "O(n k d) per iteration; O(n d^2) for the covariance", space: "O(n + k d)" },
       edgeCases: [
@@ -202,6 +248,8 @@ export const topics = [
       ],
     },
     practice: [
+      { id: "w08-manifold-case-1", type: "case", prompt: "A t-SNE map shows three islands. Can you tell a stakeholder that three customer groups exist?", answer: "No. The map optimizes neighborhood affinities and distorts density and global distance. Check scaling, metric, multiple seeds and neighborhood settings, validate structure in the original feature space, and ask whether any proposed segmentation is stable and useful. UMAP does not remove these validation obligations.", rubric: ["Map is not proof of clusters", "Settings and seeds", "Original-space validation", "Business usefulness"] },
+
       {
         id: "w08-cluster-recall-1",
         type: "recall",
@@ -219,9 +267,10 @@ export const topics = [
     ],
     references: [
       { title: "scikit-learn documentation: clustering", url: "https://scikit-learn.org/stable/modules/clustering.html", versionSensitive: true },
-      { title: "UMAP documentation: how to use UMAP", url: "https://umap-learn.readthedocs.io/en/latest/basic_usage.html", versionSensitive: true },
+      { title: "UMAP documentation: how UMAP works", url: "https://umap-learn.readthedocs.io/en/latest/how_umap_works.html", versionSensitive: true },
+      { title: "Visualizing Data using t-SNE (van der Maaten and Hinton, 2008)", url: "https://jmlr.org/papers/v9/vandermaaten08a.html", versionSensitive: false },
     ],
-    lastReviewed: REVIEWED,
+    lastReviewed: "2026-10-28",
   }),
 
   defineTopic({

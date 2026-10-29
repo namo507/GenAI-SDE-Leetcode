@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { Baby, GraduationCap } from "lucide-react";
 import type { Topic } from "@/lib/curriculum";
 import { Callout, LiveRegion } from "@/components/ui/primitives";
+import { useReducedMotionPreference } from "@/components/shell/Providers";
 
 export type ExplainMode = "eli5" | "senior";
 
@@ -20,13 +21,14 @@ const MODES = [
  */
 export function ModeToggle({ value, onChange, label }: { value: ExplainMode; onChange: (m: ExplainMode) => void; label: string }) {
   const layoutId = `${useId()}-mode`;
+  const reduced = useReducedMotionPreference();
   return (
     <div className="tp-seg" role="group" aria-label={label}>
       {MODES.map(({ id, label: text, long, icon: Icon }) => {
         const pressed = value === id;
         return (
           <button key={id} type="button" className="tp-seg__btn" aria-pressed={pressed} title={long} onClick={() => onChange(id)}>
-            {pressed && <motion.span layoutId={layoutId} className="tp-seg__indicator" transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }} aria-hidden />}
+            {pressed && <motion.span layoutId={layoutId} className="tp-seg__indicator" transition={{ duration: reduced ? 0 : 0.2, ease: [0.2, 0, 0, 1] }} aria-hidden />}
             <span className="tp-seg__label">
               <Icon className="tp-icon" aria-hidden />
               {text}
@@ -122,6 +124,7 @@ function Senior({ topic }: { topic: Topic }) {
 }
 
 export function Explainer({ topic }: { topic: Topic }) {
+  const reduced = useReducedMotionPreference();
   const [mode, setMode] = useState<ExplainMode>("eli5");
   const headingId = useId();
   return (
@@ -136,10 +139,10 @@ export function Explainer({ topic }: { topic: Topic }) {
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={mode}
-          initial={{ opacity: 0, y: 10 }}
+          initial={reduced ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+          exit={reduced ? { opacity: 1 } : { opacity: 0, y: -10 }}
+          transition={{ duration: reduced ? 0 : 0.22, ease: [0.2, 0, 0, 1] }}
         >
           {mode === "eli5" ? <Eli5 topic={topic} /> : <Senior topic={topic} />}
         </motion.div>

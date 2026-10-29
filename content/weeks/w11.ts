@@ -480,7 +480,7 @@ export const topics = [
   defineTopic({
     id: "w11-d03-streaming-windows",
     slug: "streaming-windows",
-    title: "Streaming windows, watermarks and late data",
+    title: "Kafka, streaming windows, watermarks and late data",
     domain: "data-engineering",
     roles: ["data-engineer", "ml-engineer", "sde"],
     difficulty: "advanced",
@@ -490,6 +490,7 @@ export const topics = [
       "Aggregate events into tumbling event-time windows",
       "Use a watermark to decide when a window is complete",
       "Choose what to do with late events",
+      "Explain Kafka partitions, consumer groups, offsets and replay with a crash example",
     ],
     summary:
       "Streams arrive out of order. Event-time windows group events by when they happened, and a watermark (the engine's estimate of 'all events up to time T have arrived') decides when to emit a window and what counts as late.",
@@ -497,6 +498,8 @@ export const topics = [
       analogy:
         "Collecting homework by the day it was due, not the day it reached your desk. You wait a little extra time for stragglers, then close that day's pile. Anything for a closed pile that shows up later is marked late.",
       steps: [
+        "First imagine a row of notebooks (Kafka partitions). Each notebook keeps messages in page order, and a bookmark (offset) says where each reader group will resume.",
+        "Workers in one group split the notebooks. Another group keeps separate bookmarks, so it can read the same messages for a different job.",
         "Put each event in the 10-second bucket of when it happened.",
         "Keep track of the newest event time you have seen.",
         "Declare 'everything up to 5 seconds before that has arrived' (the watermark).",
@@ -504,17 +507,26 @@ export const topics = [
         "Events for already-closed buckets are late and get dropped or sent elsewhere.",
       ],
       analogyLimit:
-        "A watermark is a guess. Set it too tight and you drop real data; too loose and results are delayed. Real systems also allow updating results after the fact (retractions) for some use cases.",
+        "The notebooks preserve order within each partition, not one universal order across all messages. A saved bookmark records a reader position, not proof that a payment or database write happened exactly once. A watermark is a guess. Set it too tight and you drop real data; too loose and results are delayed. Real systems also allow updating results after the fact (retractions) for some use cases.",
     },
     senior: {
       definition:
         "Tumbling windows partition event time into fixed, non-overlapping intervals [k w, (k + 1) w). A bounded-out-of-orderness watermark is max_event_time_seen - allowed_delay. A window is emitted once the watermark reaches its end; events for emitted windows are late.",
       invariants: [
+        "Kafka ordering is per partition, not global across a topic. Routing related keys consistently can preserve their local sequence, subject to partitioning configuration.",
+        "A committed consumer offset is conventionally the next record to read. Each consumer group keeps independent progress. Consumer assignment protocols and delivery semantics are configuration-sensitive; check the current client and broker documentation.",
+
         "Watermarks never move backwards.",
         "A window is emitted exactly once (in this append mode) and never changes afterwards.",
         "Event time, not processing time, decides window membership.",
       ],
       mechanism: [
+        "A Kafka topic is an append-only partitioned log retained by time or size policy (or compacted by key when configured). Producers append to a partition; brokers replicate it. Retention is independent of whether one consumer has already read the record, which enables independent consumers and replay.",
+        "In the classic consumer-group model, a partition is assigned to at most one active consumer in the group at a time, while a consumer can own several partitions. Two partitions can use two consumers in parallel; a third consumer in that group adds no partition-level parallelism. Rebalances reassign ownership when membership changes.",
+        "Suppose partition P0 contains offsets 0, 1 and 2. A group commits offset 2 after processing records 0 and 1, so restart resumes at 2. A separate analytics group can still start at 0 if retention allows; changing that group's offset replays history without changing the log.",
+        "If a worker writes record 1 to an external database, then crashes before committing next offset 2, it may read record 1 again. Make the sink idempotent using a stable event key or coordinate output and progress transactionally. Kafka transactions can coordinate supported Kafka reads/writes, but do not automatically make arbitrary external side effects exactly once.",
+        "Commit before processing and a crash can lose work; commit after processing and a crash can duplicate it. Track consumer lag (log end versus group position), processing delay, skew, rebalance frequency and failures. More partitions add parallelism and metadata cost, and hot keys can still bottleneck one partition.",
+
         "The event at t = 7 arrives after t = 12, but the watermark is only 7, so window [0, 10) is still open and accepts it.",
         "The event at t = 16 moves the watermark to 11, closing [0, 10) with 3 events.",
         "The event at t = 9 then arrives for a closed window and is dropped as late (it could go to a side output).",
@@ -700,10 +712,12 @@ export const topics = [
       },
     ],
     references: [
+      { title: "Apache Kafka documentation: introduction and log model", url: "https://kafka.apache.org/41/getting-started/introduction/", versionSensitive: true },
+      { title: "Apache Kafka documentation: consumer configuration", url: "https://kafka.apache.org/41/configuration/consumer-configs/", versionSensitive: true },
       { title: "Apache Flink documentation: timely stream processing", versionSensitive: true },
       { title: "Streaming Systems (Akidau, Chernyak, Lax)", versionSensitive: false },
     ],
-    lastReviewed: REVIEWED,
+    lastReviewed: "2026-10-28",
   }),
 
   defineTopic({

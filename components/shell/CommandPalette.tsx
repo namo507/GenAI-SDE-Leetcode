@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { BookOpen, CalendarDays, CornerDownLeft, Dumbbell, FileText, Search, type LucideIcon } from "lucide-react";
 import { SEARCH_KIND_LABELS, rankEntries, type SearchEntry, type SearchKind } from "@/lib/search";
+import { useReducedMotionPreference } from "./Providers";
 
 const KIND_ICON: Record<SearchKind, LucideIcon> = { page: FileText, topic: BookOpen, day: CalendarDays, term: BookOpen, problem: Dumbbell };
 
@@ -12,6 +13,7 @@ let cache: SearchEntry[] | null = null;
 async function loadIndex(): Promise<SearchEntry[]> {
   if (cache) return cache;
   const res = await fetch("/search.json");
+  if (!res.ok) throw new Error("Search index unavailable");
   cache = (await res.json()) as SearchEntry[];
   return cache;
 }
@@ -21,6 +23,7 @@ async function loadIndex(): Promise<SearchEntry[]> {
  * Combobox pattern: focus stays in the input, arrows move the active option.
  */
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const reduce = useReducedMotionPreference();
   const router = useRouter();
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -33,7 +36,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     if (!open) return;
     let alive = true;
     loadIndex()
-      .then((e) => alive && setEntries(e))
+      .then((e) => {
+        if (alive) {
+          setEntries(e);
+          setFailed(false);
+        }
+      })
       .catch(() => alive && setFailed(true));
     // Keep the last query visible but selected, so typing starts a new search. Doing it now, before
     // any key reaches the input, means fast typing right after Ctrl+K is never selected and replaced.
@@ -66,7 +74,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((a) => Math.min(a + 1, results.length - 1));
+      setActive((a) => Math.min(a + 1, Math.max(0, results.length - 1)));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((a) => Math.max(a - 1, 0));
@@ -94,7 +102,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: reduce ? 0 : 0.15 }}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
@@ -111,7 +119,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            transition={{ duration: reduce ? 0 : 0.18, ease: [0.2, 0, 0, 1] }}
           >
             <div className="relative">
               <Search className="tp-icon pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 tp-muted" aria-hidden />
@@ -136,7 +144,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               />
             </div>
             <div id={`${id}-list`} role="listbox" aria-label="Results" className="tp-cmdk__list">
-              {failed && <p className="px-3 py-6 text-center t-body-sm tp-muted">Search is unavailable offline until it has loaded once.</p>}
+              {failed && <p role="status" className="px-3 py-6 text-center t-body-sm tp-muted">Search could not load. Reconnect and reopen search to try again.</p>}
+              {!failed && !entries && <p role="status" className="px-3 py-6 text-center t-body-sm tp-muted">Loading search…</p>}
               {!failed && entries && results.length === 0 && <p className="px-3 py-6 text-center t-body-sm tp-muted">No results for “{query}”.</p>}
               {results.map((r, i) => {
                 const Icon = KIND_ICON[r.kind];

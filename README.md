@@ -3,21 +3,25 @@
 A minimal, professional 16-week study dashboard for software engineer, data scientist, data analyst, ML engineer, data engineer and GenAI engineer interviews. Every topic is explained twice (ELI5 and Senior), animated step by step, and implemented in **Python and R that print identical output and run in your browser**, with a line-by-line "Explain like I'm 5" tour of the code.
 
 - 16 weeks × 7 days = 112 planned days in chronological order, each with a fixed job: concept map, theory lab, implementation, applied practice, production lens, interview simulation, review
-- 93 topics in 12 categories: foundations, DSA, SQL and data modeling, statistics and experimentation, analytics and BI, machine learning, deep learning, GenAI and LLMs, system design, data engineering, cloud and MLOps, interviews
-- 91 paired Python and R programs, each with unit tests in both languages, a deliberately wrong version and an ELI5 code walkthrough
-- 436 narrated diagram steps (React Flow) with animated workflow pulses, 228 topic practice items
+- 96 topics in 12 categories: foundations, DSA, SQL and data modeling, statistics and experimentation, analytics and BI, machine learning, deep learning, GenAI and LLMs, system design, data engineering, cloud and MLOps, interviews
+- 94 paired Python and R programs, each with unit tests in both languages, a deliberately wrong version and an ELI5 code walkthrough
+- 451 narrated diagram steps (React Flow) with animated workflow pulses, 242 topic practice items
 - 125 drills: 32 LeetCode-style coding problems in Python and R, 20 SQL drills run in SQLite, 12 statistics calculations, 47 concept checks, 8 RAG diagnoses and 6 system design prompts
 - 16 production cases, 12 capstone briefs, 8 timed mock interview loops (one per role plus a warm-up and a cloud deep dive), 249 glossary terms
 - Command palette (Ctrl or Cmd + K), a Topics library filtered by category, role and difficulty, spaced review, confidence calibration and four separate progress measures, all stored only in your browser
 
+[Open the private website](https://techprep-os-namo.namit507.chatgpt.site) · [Concept coverage map](docs/coverage-audit.md) · [Deployment guide](docs/deployment.md)
+
 ## Quick start
+
+Use Node.js 24 LTS (`nvm use` reads `.nvmrc`), or a supported Node.js 22.12+ / 26+ release. The fixture runner also needs Python 3.10+ and R with `testthat`; CI uses Python 3.13.
 
 ```bash
 npm ci
 npm run dev          # http://localhost:3000
 ```
 
-Production build: `npm run build && npm start`. Every page is prerendered (about 217 static pages); there is no backend.
+Production build: `npm run build && npm start`. Every lesson, roadmap day and product route is prerendered; there is no application backend.
 
 ## Scripts
 
@@ -29,10 +33,11 @@ Production build: `npm run build && npm start`. Every page is prerendered (about
 | `npm test` | Vitest unit tests: curriculum contract, spaced repetition, metrics, output comparison, SQL checking |
 | `npm run validate` | Parses all content against the Zod contract and prints counts |
 | `npm run fixtures` | Runs every paired program with CPython and Rscript, compares both with the expected output, runs the Python tests, the R tests with real testthat and with the browser shim, and re-verifies every SQL and numeric drill answer, and checks that each coding problem's reference solution passes its tests while its starter fails them. Needs `python3` and `Rscript` with `testthat` (override with `PYTHON_BIN`, `RSCRIPT_BIN`) |
+| `npm run fixtures:webr` | Runs every R example and test program through actual webR WASM and the application runtime, including isolation, partial output and streaming-cap checks |
 | `npm run schema` | Regenerates `docs/curriculum.schema.json` from the Zod contract (a unit test fails if it is stale) |
 | `npm run tokens` | Compiles `design-system/tokens.json` to `app/tokens.css` (runs before every build) |
 | `npm run e2e` | Playwright: axe WCAG 2.2 AA in light and dark, 375/768/1280/2560 px viewports, keyboard and interaction tests |
-| `npm run e2e:runtime` | Playwright tests that download Pyodide and webR and execute code. `RUNTIME_E2E=all` runs all 91 lessons in both languages |
+| `npm run e2e:runtime` | Playwright tests that download Pyodide and webR and execute code. `RUNTIME_E2E=all` runs all 94 lessons in both languages |
 
 Set `PW_CHROMIUM_PATH` to use an existing Chromium instead of `npx playwright install chromium`.
 
@@ -57,7 +62,7 @@ content/{practice,coding-*,concepts,projects,interviews,glossary*}.ts ─┤─>
 
 ## Routes
 
-`/` welcome and onboarding · `/dashboard` today, reviews due, weak areas, progress by category · `/roadmap` and `/roadmap/[dayId]` 112 day pages in five phases · `/topics` library by category and role · `/learn/[domain]/[slug]` 93 lessons · `/practice` spaced review, topic drills, SQL, coding, concepts, statistics, system design and RAG diagnosis · `/projects` capstone briefs · `/interviews` timed loops with self-scoring · `/analytics` metrics, calibration and time against plan · `/glossary` · `/settings`
+`/` welcome and onboarding · `/dashboard` today, reviews due, weak areas, progress by category · `/roadmap` and `/roadmap/[dayId]` 112 day pages in five phases · `/topics` library by category and role · `/learn/[domain]/[slug]` 96 lessons · `/practice` spaced review, topic drills, SQL, coding, concepts, statistics, system design and RAG diagnosis · `/projects` capstone briefs · `/interviews` timed loops with self-scoring · `/analytics` metrics, calibration and time against plan · `/glossary` · `/settings`
 
 ## Adding a topic
 

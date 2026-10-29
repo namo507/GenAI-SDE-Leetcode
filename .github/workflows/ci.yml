@@ -25,6 +25,8 @@ jobs:
       - run: npm test
       - run: npm run validate
       - run: npm run build
+      - name: Verify the static artifact used by Sites
+        run: npm run export
 
   fixtures:
     name: Paired Python and R outputs, tests and drills
@@ -47,6 +49,8 @@ jobs:
         run: Rscript -e 'install.packages("testthat")'
       - run: npm ci
       - run: npm run fixtures
+      - name: Verify all R examples in the application webR runtime
+        run: npm run fixtures:webr
 
   e2e:
     name: Accessibility, viewports and interactions (Playwright)

@@ -749,7 +749,7 @@ export const topics = [
   defineTopic({
     id: "w09-d04-cnn-rnn",
     slug: "cnn-rnn",
-    title: "Convolutions and recurrent networks",
+    title: "Convolutions, recurrent networks and LSTM gates",
     domain: "deep-learning",
     roles: ["ml-engineer", "genai-engineer"],
     difficulty: "intermediate",
@@ -770,6 +770,8 @@ export const topics = [
         "Keep only positive matches (ReLU) and keep the strongest match in each pair of spots (max pooling).",
         "For the story, update your summary with each new word and a bit of the old summary.",
         "Notice that the first words fade from the summary as the story goes on.",
+        "An LSTM adds a memory bucket: a keep valve decides how much old water stays, a write valve adds new water and a show valve chooses what the next reader sees.",
+        "With 0.9 kept and 0.5 written, old memory 2 and new suggestion 0.4 make the next memory 0.9 × 2 + 0.5 × 0.4 = 2.",
       ],
       analogyLimit:
         "Real CNNs stack many learned stencils over 2D images with channels, and real RNNs keep vectors, not single numbers. LSTMs add gates that decide what to keep, which slows the fading but does not remove it.",
@@ -786,9 +788,12 @@ export const topics = [
         "The kernel [1, 0, -1] responds to falling edges with positive values and rising edges with negative values.",
         "ReLU keeps positive responses and max pooling with size 2 and stride 2 halves the length.",
         "The RNN state after a 1 input decays when later inputs are 0, and the printed Jacobian product shows how little the first step influences the last.",
-        "LSTM and GRU gates create additive paths that keep gradients alive longer; attention connects any two positions directly.",
+        "An LSTM forms z_t = [h_(t-1), x_t]. Learned affine maps followed by sigmoid produce forget f_t, input i_t and output o_t gates in (0, 1); tanh produces candidate g_t. These are elementwise vectors, not one yes/no switch.",
+        "Update c_t = f_t ⊙ c_(t-1) + i_t ⊙ g_t, then h_t = o_t ⊙ tanh(c_t). For c_prev = 2, f = 0.9, i = 0.5 and g = 0.4, c = 2; with o = 0.8, h ≈ 0.771. The internal memory c and exposed hidden state h serve different jobs.",
+        "Along the direct cell-state path, the derivative contributes f_t, so gates near 1 can retain gradients longer. Other dependencies through the gates still exist; an LSTM does not guarantee gradients will never vanish or explode. Truncated backpropagation limits how far training propagates through a stream.",
+        "The runnable scalar LSTM fixes gates to isolate the update: after input 1, repeated zero candidates retain 90% of the previous cell state at each step. A trained LSTM instead learns gates from the current input and prior hidden state. GRUs combine related gating ideas without a separate cell state; attention directly links positions.",
       ],
-      complexity: "Convolution O(n k) per channel pair. RNN O(T d^2) and inherently sequential across time.",
+      complexity: "Convolution O(n k) per channel pair. RNN O(T d^2) and inherently sequential across time. A dense LSTM uses four affine maps, O(T h(h + m)) time for hidden size h and input size m, O(h) streaming state and O(T h) saved activations for backpropagation.",
       tradeoffs: [
         { option: "CNN", choose: "Images, audio and local patterns with translation invariance.", cost: "Limited receptive field per layer." },
         { option: "RNN, LSTM or GRU", choose: "Streaming, low-latency sequence models on device.", cost: "Sequential training and fading long-range memory." },
@@ -806,8 +811,8 @@ export const topics = [
         "A convolution slides shared weights across the input, giving translation-equivariant local feature detectors; pooling adds some invariance and shrinks the map. An RNN reuses one cell over time, but gradients through time are products of Jacobians, so they vanish or explode. LSTMs add gated additive memory, and transformers replace recurrence with attention, which parallelizes training and connects distant positions directly.",
     },
     implementation: {
-      problem: "Run a 1D convolution with ReLU and max pooling on a signal, then a scalar RNN over a sequence with its gradient decay.",
-      input: "signal 0 0 1 1 1 0 0 2 2 0; kernel [1, 0, -1]; RNN w_x = 0.5, w_h = 0.8, b = 0 over inputs 1 0 0 1",
+      problem: "Run a 1D convolution and scalar RNN, then compare cell and hidden states of a fixed-gate LSTM teaching model.",
+      input: "signal 0 0 1 1 1 0 0 2 2 0; kernel [1, 0, -1]; RNN w_x = 0.5, w_h = 0.8, b = 0 over inputs 1 0 0 1; scalar LSTM inputs 1 0 0, fixed gates f = 0.9, i = 0.5, o = 0.8",
       python: {
         code: code`
           from math import tanh
@@ -832,6 +837,16 @@ export const topics = [
               return states
 
 
+          def lstm_fixed_gates(inputs: list[float], forget: float = 0.9) -> list[tuple[float, float]]:
+              cell = 0.0
+              states = []
+              for x in inputs:
+                  cell = forget * cell + 0.5 * tanh(x)
+                  hidden = 0.8 * tanh(cell)
+                  states.append((cell, hidden))
+              return states
+
+
           conv = conv1d(SIGNAL, KERNEL)
           relu = [max(0, v) for v in conv]
           print(f"conv: {' '.join(str(v) for v in conv)}")
@@ -844,6 +859,8 @@ export const topics = [
           for h in states[1:]:
               jac *= 0.8 * (1 - h * h)
           print(f"d h4 / d h1 = {jac:.4f}")
+          memory = lstm_fixed_gates([1, 0, 0])
+          print("lstm cell/hidden: " + " ".join(f"{c:.4f}/{h:.4f}" for c, h in memory))
         `,
       },
       r: {
@@ -864,6 +881,17 @@ export const topics = [
             states
           }
 
+          lstm_fixed_gates <- function(inputs, forget = 0.9) {
+            cell <- 0
+            states <- matrix(0, nrow = length(inputs), ncol = 2)
+            for (i in seq_along(inputs)) {
+              cell <- forget * cell + 0.5 * tanh(inputs[i])
+              hidden <- 0.8 * tanh(cell)
+              states[i, ] <- c(cell, hidden)
+            }
+            states
+          }
+
           conv <- conv1d(signal, kernel)
           relu <- pmax(0, conv)
           cat("conv:", conv, "\n")
@@ -874,6 +902,8 @@ export const topics = [
           cat("rnn states: ", paste(sprintf("%.4f", states), collapse = " "), "\n", sep = "")
           jac <- prod(0.8 * (1 - states[-1]^2))
           cat(sprintf("d h4 / d h1 = %.4f\n", jac))
+          memory <- lstm_fixed_gates(c(1, 0, 0))
+          cat(sprintf("lstm cell/hidden: %s\n", paste(sprintf("%.4f/%.4f", memory[, 1], memory[, 2]), collapse = " ")))
         `,
       },
       expectedOutput: code`
@@ -882,6 +912,7 @@ export const topics = [
         pool: 0 1 1 2
         rnn states: 0.4621 0.3537 0.2757 0.6172
         d h4 / d h1 = 0.2562
+        lstm cell/hidden: 0.3808/0.2907 0.3427/0.2639 0.3084/0.2392
       `,
       tests: {
         python: code`
@@ -891,6 +922,13 @@ export const topics = [
 
           def test_constant_signal_gives_zero_edges():
               assert conv1d([3, 3, 3, 3], KERNEL) == [0, 0]
+
+
+          def test_lstm_cell_and_hidden_are_distinct():
+              states = lstm_fixed_gates([1, 0, 0])
+              assert abs(states[1][0] - 0.9 * states[0][0]) < 1e-12
+              assert abs(states[1][1] - 0.8 * tanh(states[1][0])) < 1e-12
+              assert lstm_fixed_gates([0, 0]) == [(0.0, 0.0), (0.0, 0.0)]
 
 
           def test_state_decays_without_input():
@@ -906,6 +944,13 @@ export const topics = [
             expect_equal(conv1d(c(3, 3, 3, 3), kernel), c(0, 0))
           })
 
+          test_that("LSTM keeps cell memory separate from exposed state", {
+            states <- lstm_fixed_gates(c(1, 0, 0))
+            expect_equal(states[2, 1], 0.9 * states[1, 1])
+            expect_equal(states[2, 2], 0.8 * tanh(states[2, 1]))
+            expect_equal(lstm_fixed_gates(c(0, 0)), matrix(0, 2, 2))
+          })
+
           test_that("the state decays without input", {
             s <- rnn(c(1, 0, 0, 0), 0.5, 0.8)
             expect_true(all(diff(s) < 0))
@@ -917,6 +962,7 @@ export const topics = [
         "Keeping only positive matches leaves the falling edges, and pooling keeps the stronger of each pair.",
         "The reader's summary jumps after the first 1, then fades through the two 0s, then jumps again at the last 1.",
         "The final number shows how weakly the first step still influences the last one: the fading memory.",
+        "The fixed-gate LSTM writes the first input into its cell memory, then keeps 90% on each zero-input step. Its show valve exposes a smaller, squashed hidden state.",
       ],
       complexity: { time: "O(n k) for the convolution, O(T) for the scalar RNN", space: "O(n)" },
       edgeCases: [

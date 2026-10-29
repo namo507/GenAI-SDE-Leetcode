@@ -1,8 +1,10 @@
 import { REVIEWED, code, defineTopic, edge, node, step } from "../helpers";
 import type { ExtraWeek } from "./types";
+import { gitCollaboration } from "./git-collaboration";
 
 export const w01: ExtraWeek = {
   schedule: [
+    { dayId: "w01-d03", topicId: gitCollaboration.id, tasks: [{ label: "Git snapshots, branches and reviewed collaboration", minutes: 30 }, { label: "Run the ancestry model and explain a safe undo", minutes: 15 }] },
     {
       dayId: "w01-d02",
       topicId: "w01-d02-recursion-call-stack",
@@ -21,6 +23,7 @@ export const w01: ExtraWeek = {
     },
   ],
   topics: [
+    gitCollaboration,
     defineTopic({
       id: "w01-d02-recursion-call-stack",
       slug: "recursion-call-stack",

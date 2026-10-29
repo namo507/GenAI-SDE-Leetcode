@@ -1,8 +1,10 @@
 import { REVIEWED, code, defineTopic, edge, node, step } from "../helpers";
 import type { ExtraWeek } from "./types";
+import { serviceReliability } from "./service-reliability";
 
 export const w10: ExtraWeek = {
   schedule: [
+    { dayId: "w10-d04", topicId: serviceReliability.id, tasks: [{ label: "SLOs, error budgets and retry safety", minutes: 30 }, { label: "Run budget calculations and explain overload protection", minutes: 15 }] },
     {
       dayId: "w10-d02",
       topicId: "w10-d02-rate-limiting",
@@ -29,6 +31,7 @@ export const w10: ExtraWeek = {
     },
   ],
   topics: [
+    serviceReliability,
     defineTopic({
       id: "w10-d02-rate-limiting",
       slug: "rate-limiting",

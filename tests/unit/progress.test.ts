@@ -106,6 +106,17 @@ describe("metrics stay separate", () => {
     expect(r.value).toBeCloseTo(READINESS_WEIGHTS.completion * (1 / TOTAL_DAYS));
     expect(r.parts.mastery).toBeNull();
   });
+
+  it("excludes future and expired reviews from retention after an import", () => {
+    const p = defaultProgress("2026-01-01");
+    p.reviewLog = [
+      { topicId: T1, at: "2026-01-10", due: "2026-01-10", grade: 2 },
+      { topicId: T1, at: "2026-01-11", due: "2026-01-11", grade: 0 },
+      { topicId: T2, at: "2025-10-01", due: "2025-10-01", grade: 0 },
+    ];
+    expect(retention(p, "2026-01-10")).toBe(1);
+    expect(retention(p, "2025-09-30")).toBeNull();
+  });
 });
 
 describe("plan position and queues", () => {

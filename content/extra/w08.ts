@@ -1,8 +1,17 @@
 import { REVIEWED, code, defineTopic, edge, node, step } from "../helpers";
 import type { ExtraWeek } from "./types";
+import { causalDepth } from "./causal-depth";
 
 export const w08: ExtraWeek = {
   schedule: [
+    {
+      dayId: "w08-d04",
+      topicId: causalDepth.id,
+      tasks: [
+        { label: "Causal DAGs, matching and instrumental-variable assumptions", minutes: 35 },
+        { label: "Run and explain a cross-fitted residualized effect", minutes: 30 },
+      ],
+    },
     {
       dayId: "w08-d01",
       topicId: "w08-d01-knn-naive-bayes",
@@ -29,6 +38,7 @@ export const w08: ExtraWeek = {
     },
   ],
   topics: [
+    causalDepth,
     defineTopic({
       id: "w08-d01-knn-naive-bayes",
       slug: "knn-naive-bayes",

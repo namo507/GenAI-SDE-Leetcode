@@ -69,6 +69,8 @@ export const walkthroughs: Record<string, WalkthroughStepInput[]> = {
     { python: "labels, centers, iters", pythonLines: 4, r: "km <- kmeans_lloyd", rLines: 5, eli5: "Start from three points as centers; it settles after 2 rounds into three groups of three." },
     { python: "def pca_2d", pythonLines: 9, r: "ev <- eigen", eli5: "PCA finds the direction the points spread out the most. Python works out the two spreads by hand; R asks eigen for them." },
     { python: "l1, l2 =", pythonLines: 2, r: "cat(sprintf(\"pca", eli5: "The main direction explains about 74% of the spread." },
+    { python: "def gaussian_neighbors", pythonLines: 4, r: "gaussian_neighbors <-", rLines: 4, eli5: "Give a nearby friend more weight than a distant one, then divide so the weights add to one. This fixes the local scale to show the arithmetic." },
+    { python: "def fuzzy_union", pythonLines: 2, r: "fuzzy_union <-", eli5: "Join two directional friendship weights: add them and subtract their overlap. A complete UMAP fit uses many such links and then optimizes a map." },
   ],
   "w08-d02-anomaly-forecasting": [
     { python: "def robust_z", pythonLines: 4, r: "robust_z", eli5: "Measure how far each day is from the median, in units of a typical wobble that one weird day cannot stretch." },

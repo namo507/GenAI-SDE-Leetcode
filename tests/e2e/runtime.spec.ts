@@ -63,6 +63,65 @@ for (const [lang, code] of [
   });
 }
 
+for (const [lang, runtimeURL] of [
+  ["Python", /^https:\/\/cdn\.jsdelivr\.net\/pyodide\//],
+  ["R", /^https:\/\/webr\.r-wasm\.org\//],
+] as const) {
+  test(`${lang}: Stop ends a pending first runtime download`, async ({ page }) => {
+    let release!: () => void;
+    let intercepted = false;
+    const blocked = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(runtimeURL, async (route) => {
+      intercepted = true;
+      await blocked;
+      // Closing the worker can already have cancelled its request.
+      await route.abort().catch(() => undefined);
+    });
+    try {
+      await page.goto("/learn/foundations/python-r-idioms");
+      const runner = page.locator(".tp-runner");
+      await runner.getByRole("tab", { name: lang }).click();
+      await runner.getByRole("button", { name: "Run", exact: true }).click();
+      await expect.poll(() => intercepted, { timeout: 30_000 }).toBe(true);
+      await expect(runner.locator(".tp-runner__status")).toContainText("Downloading");
+      await runner.getByRole("button", { name: "Stop" }).click();
+      await expect(runner.locator(".tp-runner__verdict")).toContainText("Stopped before the program finished", { timeout: 3000 });
+      await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+      await expect(runner.locator(".tp-runner__status")).toContainText("stopped");
+    } finally {
+      release();
+    }
+  });
+}
+
+test("R: a removed function cannot survive from an earlier edited run", async ({ page }) => {
+  await page.goto("/learn/foundations/python-r-idioms");
+  const runner = page.locator(".tp-runner");
+  await runner.getByRole("tab", { name: "R", exact: true }).click();
+  const editor = page.getByLabel(/R code, editable/);
+  await editor.fill('techprep_unique_function <- function() 42\ncat(techprep_unique_function(), "\\n")');
+  await expect(await runAndWait(page, "Run")).toContainText("Output differs");
+  await expect(runner.locator(".tp-runner__out").first()).toHaveText("42");
+  await editor.fill('cat(techprep_unique_function(), "\\n")');
+  await expect(await runAndWait(page, "Run")).toContainText("raised an error");
+  await expect(runner.locator(".tp-runner__out").first()).toContainText('could not find function "techprep_unique_function"');
+});
+
+for (const [lang, code] of [
+  ["Python", "while True:\n    print('spam')"],
+  ["R", "repeat { cat('spam\\n') }"],
+] as const) {
+  test(`${lang}: output cap stops an endlessly printing program`, async ({ page }) => {
+    await page.goto("/learn/foundations/python-r-idioms");
+    const runner = page.locator(".tp-runner");
+    await runner.getByRole("tab", { name: lang, exact: true }).click();
+    await page.getByLabel(new RegExp(`${lang} code, editable`)).fill(code);
+    await expect(await runAndWait(page, "Run")).toContainText("output limit");
+    await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+    await expect(runner.locator(".tp-runner__out").first()).not.toContainText("__techprep_stream_end_");
+  });
+}
+
 test("a SQL drill runs in SQLite and is graded", async ({ page }) => {
   await page.goto("/practice#sql");
   const card = page.locator("article", { has: page.getByRole("heading", { name: "Customers who never ordered" }) });
@@ -85,6 +144,19 @@ test("an allowlisted third-party package is loaded on demand", async ({ page }) 
   await runAndWait(page, "Run");
   await expect(page.locator(".tp-runner__out").first()).toHaveText("6");
 });
+
+// Exercises new and expanded programs in the shipped browser integrations.
+for (const slug of ["git-collaboration", "service-reliability", "causal-identification", "clustering-pca", "cnn-rnn"]) {
+  const topic = curriculum.topics.find((t) => t.slug === slug)!;
+  test(`expanded curriculum: ${slug} runs and tests in Python and R`, async ({ page }) => {
+    await page.goto(`/learn/${topic.domain}/${slug}`);
+    for (const lang of ["Python", "R"] as const) {
+      await page.locator(".tp-runner").getByRole("tab", { name: lang }).click();
+      await expect(await runAndWait(page, "Run")).toContainText("Output matches the expected output");
+      await expect(await runAndWait(page, "Run tests")).toContainText("All tests passed");
+    }
+  });
+}
 
 /** Every paired lesson, both languages, in the browser runtimes (RUNTIME_E2E=all; several minutes). */
 test.describe("all paired lessons", () => {

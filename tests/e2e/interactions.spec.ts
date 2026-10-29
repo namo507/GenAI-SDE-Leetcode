@@ -173,6 +173,35 @@ test("command palette finds a topic and opens it", async ({ page }) => {
   await expect(page).toHaveURL(/\/learn\/dsa\/sliding-window$/);
 });
 
+test("search recovers after its first index request fails", async ({ page }) => {
+  await page.route("**/search.json", (route) => route.fulfill({ status: 503, body: "temporarily unavailable" }));
+  await page.goto("/dashboard");
+  await page.waitForLoadState("networkidle");
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("status").filter({ hasText: "Search could not load" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.unroute("**/search.json");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: /Search topics/ }).fill("sliding window");
+  await expect(page.getByRole("option").first()).toContainText("Two pointers and sliding windows");
+  await expect(page.getByText("Search could not load", { exact: false })).toBeHidden();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/learn\/dsa\/sliding-window$/);
+});
+
+test("an open lesson keeps local controls usable when the connection drops", async ({ page, context }) => {
+  await page.goto("/learn/dsa/sliding-window");
+  const senior = page.getByRole("group", { name: /Explanation depth/ }).getByRole("button", { name: "Senior" });
+  await senior.click();
+  await context.setOffline(true);
+  await expect(page.getByRole("status").filter({ hasText: "You are offline" })).toBeVisible();
+  const eli5 = page.getByRole("group", { name: /Explanation depth/ }).getByRole("button", { name: "ELI5" });
+  await eli5.click();
+  await expect(eli5).toHaveAttribute("aria-pressed", "true");
+  await context.setOffline(false);
+  await expect(page.getByText("You are offline", { exact: false })).toBeHidden();
+});
+
 test("topics library filters by role and links to lessons", async ({ page }) => {
   await page.goto("/topics");
   await page.getByLabel("Role").selectOption("genai-engineer");

@@ -27,6 +27,7 @@ export const walkthroughs: Record<string, WalkthroughStepInput[]> = {
     { python: "relu = [max", pythonLines: 4, r: "conv <- conv1d", rLines: 5, eli5: "ReLU keeps only the positive answers, and pooling keeps the biggest of each pair." },
     { python: "def rnn(inputs", pythonLines: 6, r: "rnn <- function", rLines: 9, eli5: "A recurrent net reads one number at a time and carries a memory h forward, mixing old memory with the new input." },
     { python: "jac = 1.0", pythonLines: 4, r: "jac <- prod", rLines: 2, eli5: "Multiply how much each step passes back through the memory. The result shrinks to 0.26 after three steps: that is the vanishing gradient." },
+    { python: "def lstm_fixed_gates", pythonLines: 8, r: "lstm_fixed_gates <-", rLines: 10, eli5: "Keep nine tenths of the old cell memory, add half the new suggestion, and show a squashed part through the output gate. Real networks learn these gates; this example fixes them to expose the arithmetic." },
   ],
   "w10-d01-estimation-api-design": [
     { python: "DAU = 50_000_000", pythonLines: 5, r: "dau <- 50e6", rLines: 8, eli5: "Write down the assumptions: 50 million daily users, 20 reads and 2 writes each, 1 KB per object, peaks 3 times the average, 3 copies of everything." },

@@ -15,10 +15,10 @@ import {
   overallMastery,
   readiness,
   retention,
+  reviewsInWindow,
   timeVsPlan,
   formatMinutes,
 } from "@/lib/progress/metrics";
-import { daysBetween } from "@/lib/progress/srs";
 import { useClientProgress, useToday } from "@/lib/progress/hooks";
 import { Callout, EmptyState, Meter, pct } from "@/components/ui/primitives";
 import { CalibrationChart, ChartFrame, DataTable, LegendItem, TimeVsPlanChart } from "./charts";
@@ -39,7 +39,7 @@ export function AnalyticsView({ catalog }: { catalog: Catalog }) {
   const domains = masteryByDomain(progress, catalog);
   const time = timeVsPlan(progress, catalog);
   const attemptedTopics = new Set(progress.attempts.map((a) => a.topicId).filter(Boolean)).size;
-  const recentReviews = progress.reviewLog.filter((r) => daysBetween(r.at, today) <= 60).length;
+  const recentReviews = reviewsInWindow(progress, today).length;
   const doneDays = Object.values(progress.days).filter((d) => d.status === "done").length;
   const loggedTotal = time.reduce((s, w) => s + w.actual, 0);
   const plannedDone = time.reduce((s, w) => s + w.plannedDone, 0);

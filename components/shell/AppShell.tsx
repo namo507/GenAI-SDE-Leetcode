@@ -231,7 +231,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {!online && (
             <div role="status" className="flex items-start gap-3 border-b border-border bg-caution-soft px-4 py-3 t-body-sm text-ink sm:px-6 lg:px-10">
               <WifiOff className="tp-icon mt-0.5 text-caution" aria-hidden />
-              <p>You are offline. Pages you have opened still work, and runtimes already downloaded keep running. Loading a runtime for the first time needs a connection.</p>
+              <p>You are offline. You can keep reading this page and recording progress in this browser. Loading another page, a runtime or a new package may need a connection.</p>
             </div>
           )}
 

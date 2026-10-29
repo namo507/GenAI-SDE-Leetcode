@@ -66,9 +66,17 @@ export function averageConfidence(p: Progress): number | null {
 }
 
 export function retention(p: Progress, today: string, windowDays = 60): number | null {
-  const recent = p.reviewLog.filter((r) => daysBetween(r.at, today) <= windowDays);
+  const recent = reviewsInWindow(p, today, windowDays);
   if (!recent.length) return null;
   return recent.filter((r) => r.at <= r.due && r.grade >= 2).length / recent.length;
+}
+
+/** Future-dated imported records are not observations in today's review window. */
+export function reviewsInWindow(p: Progress, today: string, windowDays = 60) {
+  return p.reviewLog.filter((r) => {
+    const age = daysBetween(r.at, today);
+    return age >= 0 && age <= windowDays;
+  });
 }
 
 export function topicRetention(p: Progress, topicId: string): number | null {

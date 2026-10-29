@@ -23,6 +23,7 @@ describe("R package detection", () => {
   it("finds library, require and namespace calls", () => {
     expect(referencedRPackages("library(MASS)\nrequire('survival')\nx <- jsonlite::toJSON(1)").sort()).toEqual(["MASS", "jsonlite", "survival"]);
     expect(referencedRPackages("x <- c(1, 2)")).toEqual([]);
+    expect(referencedRPackages('library ( package = "MASS" )\nrequireNamespace ("jsonlite")\nx <- survival :: Surv(1)')).toEqual(["MASS", "jsonlite", "survival"]);
   });
 
   it("ignores package-like text inside strings and comments", () => {

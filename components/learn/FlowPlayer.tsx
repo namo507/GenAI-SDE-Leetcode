@@ -425,10 +425,10 @@ export function FlowPlayer({ flow }: { flow: Flow }) {
           <motion.span
             key={index}
             className="block"
-            initial={{ opacity: 0, y: 8 }}
+            initial={reduced ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+            exit={reduced ? { opacity: 1 } : { opacity: 0, y: -8 }}
+            transition={{ duration: reduced ? 0 : 0.18, ease: [0.2, 0, 0, 1] }}
           >
             {step.narration}
           </motion.span>

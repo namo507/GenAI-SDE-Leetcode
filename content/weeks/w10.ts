@@ -13,7 +13,7 @@ export const topics = [
     objectives: [
       "Turn users and actions into average and peak QPS, storage and bandwidth",
       "State assumptions explicitly and round sensibly",
-      "Design a resource-oriented API with pagination, idempotency and versioning",
+      "Design a resource-oriented API with pagination, idempotency, versioning and explicit security boundaries",
     ],
     summary:
       "System design interviews start with numbers. A few multiplications (users times actions, divided by seconds per day, times a peak factor) decide whether one database is enough or you need caching, sharding and queues.",
@@ -26,6 +26,7 @@ export const topics = [
         "Multiply by a rush-hour factor for the busiest moment.",
         "Multiply by the size of each item and how long you keep it to get storage.",
         "Use those numbers to decide how big the kitchen must be.",
+        "Check a visitor's badge to learn who they are (authentication), then check their permission for this exact lunch box (authorization). A real badge is not a key to every box.",
       ],
       analogyLimit:
         "Bake sales have one rush; real traffic has daily peaks, viral spikes and retries during outages that multiply load. Estimates set the order of magnitude, not the exact capacity plan.",
@@ -39,6 +40,10 @@ export const topics = [
         "Storage = writes per day times object size times retention times replication factor.",
       ],
       mechanism: [
+        "Security design starts with assets, actors, trust boundaries and abuse cases. Authentication establishes an identity; authorization decides whether it may perform this action on this resource. Enforce object- and tenant-level authorization on the server for every request, including cached responses and background jobs; knowing an object ID is not permission.",
+        "Use HTTPS in transit, protect stored sensitive data and keys separately, validate token issuer/audience/signature/expiry, bound payloads and allowed methods, and parameterize database queries. For browser APIs, CORS controls which origins a browser may read; it is not authentication. Cookie-authenticated state-changing operations also need an appropriate CSRF defense.",
+        "Apply least privilege, avoid secrets in URLs and logs, rotate credentials, redact sensitive telemetry and limit costly operations per identity. Verify denied access with negative tests, including another tenant's valid object ID. Rate limits and encryption do not replace authorization.",
+
         "50 million DAU times 20 reads is 1 billion reads a day, about 11,600 per second on average and about 35,000 at a 3x peak.",
         "Writes at 2 per user are 100 million a day; at 1 KB each with 3 replicas, a year is about 110 TB.",
         "These numbers suggest a read-heavy design: caching and read replicas first, sharding writes later.",
@@ -181,6 +186,8 @@ export const topics = [
       ],
     },
     practice: [
+      { id: "w10-api-security-case-1", type: "case", prompt: "An authenticated user changes /orders/123 to /orders/124 and sees a stranger's order. What failed and what would you test?", answer: "Object-level authorization failed; valid authentication only establishes the caller. Check permission for the authenticated subject, requested action, order and tenant on the server before returning data. Apply the same scope to cache keys and background paths. Test denied cross-user and cross-tenant reads/writes, missing or expired credentials, and allowed access; UUIDs or a hidden button do not fix the boundary.", rubric: ["Authentication versus authorization", "Server object and tenant checks", "Cache isolation", "Positive and negative access tests"] },
+
       {
         id: "w10-est-recall-1",
         type: "recall",
@@ -197,10 +204,12 @@ export const topics = [
       },
     ],
     references: [
+      { title: "OWASP API Security: Broken Object Level Authorization", url: "https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/", versionSensitive: true },
+      { title: "OWASP REST Security Cheat Sheet", url: "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html", versionSensitive: true },
       { title: "Google SRE book: Handling overload", url: "https://sre.google/sre-book/handling-overload/", versionSensitive: false },
       { title: "Designing Data-Intensive Applications (Kleppmann), chapter 1", versionSensitive: false },
     ],
-    lastReviewed: REVIEWED,
+    lastReviewed: "2026-10-28",
   }),
 
   defineTopic({

@@ -304,7 +304,7 @@ export const w12: ExtraWeek = {
     defineTopic({
       id: "w12-d02-containers-kubernetes",
       slug: "containers-kubernetes",
-      title: "Containers and Kubernetes: scheduling and autoscaling",
+      title: "Docker and Kubernetes: images, isolation and autoscaling",
       domain: "cloud",
       roles: ["sde", "ml-engineer", "genai-engineer", "data-engineer"],
       difficulty: "intermediate",
@@ -316,18 +316,20 @@ export const w12: ExtraWeek = {
         "Trace the Horizontal Pod Autoscaler formula through a traffic spike and recovery",
       ],
       summary:
-        "A container packages an application with its dependencies so it runs the same everywhere. Kubernetes runs containers in pods across a cluster of nodes, places them using their CPU and memory requests, restarts failed ones, and scales replicas with the Horizontal Pod Autoscaler (HPA), which aims to keep average utilization near a target.",
+        "A container image packages an application and its userspace dependencies for a compatible operating-system and CPU platform. A running container is an isolated process, not a full virtual machine. Kubernetes runs containers in pods across a cluster of nodes, places them using their CPU and memory requests, restarts failed ones, and scales replicas with the Horizontal Pod Autoscaler (HPA), which aims to keep average utilization near a target.",
       eli5: {
         analogy:
           "Shipping containers on cargo ships. Every box has a label saying how heavy and big it is (requests), and the port manager fits boxes onto ships without overloading any ship. When more cargo arrives, the manager calls in more boxes of the same kind, and sends some home when it is quiet.",
         steps: [
-          "Pack the app and everything it needs into a box (container image).",
+          "Write a packing recipe (Dockerfile). Building it makes reusable, read-only layers containing the app and its dependencies.",
+          "Running the image makes a live process with a thin writable layer. The image is the recipe result; the container is one running copy.",
+          "Keep important files on separate storage (a volume), because throwing away the running copy also throws away its temporary layer.",
           "Label each box with how much space it needs.",
           "Fit boxes onto ships: big boxes first leaves fewer awkward gaps.",
           "Watch how busy the boxes are and add or remove copies to stay near the target.",
         ],
         analogyLimit:
-          "Real pods can use more than their request (up to a limit) and can be evicted when a node runs short of memory, so labels and reality can disagree.",
+          "Containers share a host kernel; the box is not an independent computer or a perfect security wall. CPU architecture, kernel features and external services still matter. Pods can use more than their request up to a limit, and memory pressure can evict them, so labels and reality can disagree.",
       },
       senior: {
         definition:
@@ -338,19 +340,26 @@ export const w12: ExtraWeek = {
           "Replicas stay between the configured minimum and maximum.",
         ],
         mechanism: [
+          "Docker builds an image from a Dockerfile. Filesystem-changing instructions add immutable layers; a running container adds a writable layer. Cached layers speed rebuilds, so copy dependency manifests and install dependencies before copying frequently changing source when that ordering is valid.",
+          "Linux namespaces isolate views such as process IDs, networking and mounts; cgroups account for and limit resources. Containers share the kernel rather than booting a separate guest OS. Docker Desktop runs Linux containers through a Linux virtual machine on macOS or Windows.",
+          "A multi-stage build copies only runtime artifacts from a builder into a smaller final image. Pin dependency versions and deployment image digests; mutable tags can move. Keep credentials out of build context and image layers, even if a later layer deletes them; use supported build-secret and runtime-secret mechanisms.",
+          "Run as a non-root user with minimal capabilities, a read-only filesystem where practical and explicit resource bounds. Volumes hold persistent state outside a disposable writable layer. Publishing a port controls host reachability; exposing metadata in a Dockerfile does not by itself make an application reachable.",
+
           "Pods arriving smallest first need 4 nodes of 4 CPU and 16 GiB; sorting largest first (first-fit decreasing) fits the same 13 pods into 3 full-CPU nodes.",
           "Demand of 1,500 millicores on 3 pods requesting 500 each is 100% of requests, so the HPA scales to ceil(3 × 100 / 60) = 5.",
           "At 72% on 5 pods it scales to 6; at 60% it holds; as demand falls to 40% and 30% it scales down to 4 and then the minimum of 2.",
           "Real HPAs also apply a scale-down stabilization window (5 minutes by default) so replicas do not flap; this simulation omits it to keep the arithmetic visible.",
         ],
         complexity:
-          "First-fit decreasing is O(pods × nodes) and uses at most about 11/9 of the optimal number of bins plus a constant; exact bin packing is NP-hard.",
+          "The placement loop is O(pods × nodes), plus O(pods log pods) for sorting. This is a two-resource packing heuristic; the classic one-dimensional first-fit-decreasing approximation bound does not automatically apply to simultaneous CPU and memory constraints. Exact multidimensional bin packing is NP-hard.",
         tradeoffs: [
           { option: "Kubernetes", choose: "Many services, teams and environments needing a common platform.", cost: "Operational complexity; needs platform engineering." },
           { option: "Serverless containers (Cloud Run, Fargate, Container Apps)", choose: "Stateless services that should scale to zero with little ops.", cost: "Less control over networking, GPUs and long-running work; cold starts." },
           { option: "Functions (Lambda, Cloud Functions)", choose: "Event-driven glue and spiky low-volume tasks.", cost: "Execution time limits, cold starts, vendor-specific packaging." },
         ],
         failureModes: [
+          "Treating containers as virtual machines with a private kernel, or assuming an image removes host-platform differences.",
+          "Baking a secret into an image layer, trusting a mutable latest tag, or storing the only copy of important data in a disposable container layer.",
           "No resource requests, so the scheduler overpacks nodes and pods get evicted under pressure.",
           "Memory limits below real peak usage, causing OOMKilled restarts.",
           "Autoscaling on CPU for a service bound by I/O or a queue; scale on queue depth or latency instead.",
@@ -534,7 +543,7 @@ export const w12: ExtraWeek = {
           "A pod larger than any node can never be scheduled and stays Pending.",
           "Memory can be the binding constraint even when CPU is free (node 1 here is full on both).",
           "Missing metrics make the HPA skip scaling rather than guess.",
-          "Scaling to zero needs an event-driven autoscaler such as KEDA; the HPA minimum is 1 or more.",
+          "This CPU-utilization HPA example keeps at least one replica. Scale-to-zero needs a supported activation design, often an event-driven autoscaler such as KEDA; verify the current platform and metrics configuration.",
         ],
         incorrect: {
           language: "python",
@@ -550,6 +559,19 @@ export const w12: ExtraWeek = {
           { python: "arrival = pack(", pythonLines: 5, r: "arrival <- pack(", rLines: 5, eli5: "Load the same boxes twice: smallest first, then biggest first. Biggest first needs one ship fewer." },
           { python: "for minute, demand in enumerate(", pythonLines: 10, r: "for (minute in seq_along(demands)) {", rLines: 14, eli5: "Each minute, check how busy the copies are compared to the 60% target, and call in or send home copies to match." },
         ],
+      },
+      referenceSnippet: {
+        language: "dockerfile",
+        label: "Dockerfile reference for a small Python process; run with Docker in a terminal, not in the browser. Assumes app.py and a complete requirements.txt with pinned, hashed dependencies. Verify the current base image and pin its digest for deployment.",
+        code: code`
+          FROM python:3.13-slim
+          WORKDIR /app
+          COPY requirements.txt .
+          RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+          COPY --chown=10001:10001 app.py .
+          USER 10001:10001
+          CMD ["python", "app.py"]
+        `,
       },
       flow: {
         title: "From image to scaled replicas",
@@ -570,6 +592,9 @@ export const w12: ExtraWeek = {
         ],
       },
       practice: [
+        { id: "w12-docker-recall-1", type: "recall", prompt: "Explain Dockerfile, image, container and volume, then compare a container with a VM.", answer: "A Dockerfile describes an image build. An image is immutable layers plus configuration. A container is a running instance with a writable layer; a volume persists data separately. Linux containers isolate processes with namespaces and bound resources with cgroups while sharing a host kernel. A VM normally has a guest OS and its own kernel, with higher overhead and a different isolation boundary.", rubric: ["Build recipe versus artifact versus runtime", "Disposable writable layer", "Volume persistence", "Shared versus guest kernel"] },
+        { id: "w12-docker-case-1", type: "case", prompt: "A Dockerfile copies an API key, uses it, then deletes it in a later RUN. Is the key gone?", answer: "No. Earlier immutable layers can still contain it. Rotate an exposed key, remove the source of exposure and rebuild without embedding it. Pass credentials through supported build-secret mounts when needed at build time, or through a runtime secret manager for runtime access; exclude secrets from the build context.", rubric: ["Earlier layer remains", "Rotate exposed credential", "Build/runtime secret distinction", "Exclude from context"] },
+
         {
           id: "w12-k8s-recall-1",
           type: "recall",
@@ -593,10 +618,12 @@ export const w12: ExtraWeek = {
         },
       ],
       references: [
+        { title: "Docker documentation: image layers", url: "https://docs.docker.com/get-started/docker-concepts/building-images/understanding-image-layers/", versionSensitive: true },
+        { title: "Docker documentation: security", url: "https://docs.docker.com/engine/security/", versionSensitive: true },
         { title: "Kubernetes documentation: Horizontal Pod Autoscaling", url: "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/", versionSensitive: true },
         { title: "Kubernetes documentation: Resource management for pods and containers", url: "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/", versionSensitive: true },
       ],
-      lastReviewed: REVIEWED,
+      lastReviewed: "2026-10-28",
     }),
 
     defineTopic({

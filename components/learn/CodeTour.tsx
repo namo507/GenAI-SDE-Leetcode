@@ -110,10 +110,10 @@ export function CodeTour({ code, steps, lang, label }: { code: string; steps: Wa
             <motion.p
               key={index}
               className="tp-tour__say"
-              initial={{ opacity: 0, y: 8 }}
+              initial={reduced ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+              exit={reduced ? { opacity: 1 } : { opacity: 0, y: -8 }}
+              transition={{ duration: reduced ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
             >
               {current.eli5}
             </motion.p>

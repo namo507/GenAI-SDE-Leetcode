@@ -18,7 +18,7 @@ type WorkerMessage =
  * created lazily on first use; terminating it (timeout, output limit, or the
  * learner's Terminate button) throws the interpreter away entirely.
  */
-class PythonRuntime implements Runtime {
+export class PythonRuntime implements Runtime {
   readonly language = "python" as const;
   private worker: Worker | null = null;
   private state: RuntimeSnapshot = { state: "idle", detail: "Python runtime not loaded" };
@@ -70,16 +70,26 @@ class PythonRuntime implements Runtime {
 
   async ensure() {
     if (this.state.state === "ready" || this.state.state === "running") return;
-    const worker = this.spawn();
-    await new Promise<void>((resolve) => {
-      const unsubscribe = this.subscribe(() => {
-        if (this.state.state === "ready" || this.state.state === "error") {
+    try {
+      const worker = this.spawn();
+      await new Promise<void>((resolve) => {
+        const unsubscribe = this.subscribe(() => {
+          if (this.state.state === "ready" || this.state.state === "error" || this.state.state === "idle") {
+            unsubscribe();
+            resolve();
+          }
+        });
+        try {
+          worker.postMessage({ type: "init" });
+        } catch (err) {
           unsubscribe();
-          resolve();
+          throw err;
         }
       });
-      worker.postMessage({ type: "init" });
-    });
+    } catch {
+      this.dispose();
+      this.set({ state: "error", detail: "The Python worker could not start. Check browser support and try again." });
+    }
   }
 
   run(code: string, options: RunOptions = {}): Promise<RunResult> {
@@ -132,8 +142,15 @@ class PythonRuntime implements Runtime {
         options.onOutput?.(stream, text);
       };
 
-      const worker = this.spawn();
-      worker.postMessage({ type: "run", id, code, allowlist: IMPORT_ALLOWLIST });
+      try {
+        const worker = this.spawn();
+        worker.postMessage({ type: "run", id, code, allowlist: IMPORT_ALLOWLIST });
+      } catch {
+        const detail = "The Python worker could not start. Check browser support and try again.";
+        finish({ ok: false, error: detail });
+        this.dispose();
+        this.set({ state: "error", detail });
+      }
     });
   }
 
