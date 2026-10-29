@@ -1,0 +1,204 @@
+import { expect, test } from "@playwright/test";
+import { curriculum, practiceSets } from "@/content";
+
+/**
+ * Real execution in the browser. These download Pyodide and webR from their CDNs,
+ * so they run only when RUNTIME_E2E=1 (CI sets it in a separate job).
+ */
+test.skip(!process.env.RUNTIME_E2E, "Set RUNTIME_E2E=1 to download the runtimes and run these.");
+test.describe.configure({ timeout: 300_000 });
+
+async function runAndWait(page: import("@playwright/test").Page, button: string) {
+  const runner = page.locator(".tp-runner");
+  await runner.getByRole("button", { name: button, exact: true }).click();
+  const verdict = runner.locator(".tp-runner__verdict");
+  await expect(verdict).toBeVisible({ timeout: 240_000 });
+  return verdict;
+}
+
+for (const lang of ["Python", "R"] as const) {
+  test(`${lang}: program output matches and its tests pass`, async ({ page }) => {
+    await page.goto("/learn/foundations/python-r-idioms");
+    const runner = page.locator(".tp-runner");
+    await runner.getByRole("tab", { name: lang }).click();
+    await page.waitForTimeout(400);
+    await expect(await runAndWait(page, "Run")).toContainText("Output matches the expected output");
+    await expect(await runAndWait(page, "Run tests")).toContainText("All tests passed");
+    await expect(runner.locator(".tp-runner__status")).toContainText(lang === "Python" ? "Pyodide" : "webR");
+  });
+}
+
+test("Python refuses packages outside the allowlist before running", async ({ page }) => {
+  await page.goto("/learn/foundations/python-r-idioms");
+  const editor = page.getByLabel(/Python code, editable/);
+  await editor.fill("import requests\nprint('should not run')");
+  const verdict = await runAndWait(page, "Run");
+  await expect(verdict).toContainText("raised an error");
+  await expect(page.locator(".tp-runner__out").first()).toContainText("Import not allowed here: requests");
+  await expect(page.locator(".tp-runner__out").first()).not.toContainText("should not run");
+});
+
+test("an infinite loop is stopped by the time limit", async ({ page }) => {
+  await page.goto("/learn/foundations/python-r-idioms");
+  await page.getByLabel(/Python code, editable/).fill("while True:\n    pass");
+  const verdict = await runAndWait(page, "Run");
+  await expect(verdict).toContainText("time limit");
+});
+
+for (const [lang, code] of [
+  ["Python", "print('start')\nwhile True:\n    pass"],
+  ["R", "cat('start\\n')\nrepeat {}"],
+] as const) {
+  test(`${lang}: Stop ends a running program right away`, async ({ page }) => {
+    await page.goto("/learn/foundations/python-r-idioms");
+    const runner = page.locator(".tp-runner");
+    await runner.getByRole("tab", { name: lang }).click();
+    await page.getByLabel(new RegExp(`${lang} code, editable`)).fill(code);
+    await runner.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(runner.locator(".tp-runner__status")).toContainText("Running", { timeout: 240_000 });
+    await page.waitForTimeout(1000);
+    await runner.getByRole("button", { name: "Stop" }).click();
+    await expect(runner.locator(".tp-runner__verdict")).toContainText("Stopped before the program finished", { timeout: 3000 });
+    await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+  });
+}
+
+for (const [lang, runtimeURL] of [
+  ["Python", /^https:\/\/cdn\.jsdelivr\.net\/pyodide\//],
+  ["R", /^https:\/\/webr\.r-wasm\.org\//],
+] as const) {
+  test(`${lang}: Stop ends a pending first runtime download`, async ({ page }) => {
+    let release!: () => void;
+    let intercepted = false;
+    const blocked = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(runtimeURL, async (route) => {
+      intercepted = true;
+      await blocked;
+      // Closing the worker can already have cancelled its request.
+      await route.abort().catch(() => undefined);
+    });
+    try {
+      await page.goto("/learn/foundations/python-r-idioms");
+      const runner = page.locator(".tp-runner");
+      await runner.getByRole("tab", { name: lang }).click();
+      await runner.getByRole("button", { name: "Run", exact: true }).click();
+      await expect.poll(() => intercepted, { timeout: 30_000 }).toBe(true);
+      await expect(runner.locator(".tp-runner__status")).toContainText("Downloading");
+      await runner.getByRole("button", { name: "Stop" }).click();
+      await expect(runner.locator(".tp-runner__verdict")).toContainText("Stopped before the program finished", { timeout: 3000 });
+      await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+      await expect(runner.locator(".tp-runner__status")).toContainText("stopped");
+    } finally {
+      release();
+    }
+  });
+}
+
+test("R: a removed function cannot survive from an earlier edited run", async ({ page }) => {
+  await page.goto("/learn/foundations/python-r-idioms");
+  const runner = page.locator(".tp-runner");
+  await runner.getByRole("tab", { name: "R", exact: true }).click();
+  const editor = page.getByLabel(/R code, editable/);
+  await editor.fill('techprep_unique_function <- function() 42\ncat(techprep_unique_function(), "\\n")');
+  await expect(await runAndWait(page, "Run")).toContainText("Output differs");
+  await expect(runner.locator(".tp-runner__out").first()).toHaveText("42");
+  await editor.fill('cat(techprep_unique_function(), "\\n")');
+  await expect(await runAndWait(page, "Run")).toContainText("raised an error");
+  await expect(runner.locator(".tp-runner__out").first()).toContainText('could not find function "techprep_unique_function"');
+});
+
+for (const [lang, code] of [
+  ["Python", "while True:\n    print('spam')"],
+  ["R", "repeat { cat('spam\\n') }"],
+] as const) {
+  test(`${lang}: output cap stops an endlessly printing program`, async ({ page }) => {
+    await page.goto("/learn/foundations/python-r-idioms");
+    const runner = page.locator(".tp-runner");
+    await runner.getByRole("tab", { name: lang, exact: true }).click();
+    await page.getByLabel(new RegExp(`${lang} code, editable`)).fill(code);
+    await expect(await runAndWait(page, "Run")).toContainText("output limit");
+    await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+    await expect(runner.locator(".tp-runner__out").first()).not.toContainText("__techprep_stream_end_");
+  });
+}
+
+test("a SQL drill runs in SQLite and is graded", async ({ page }) => {
+  await page.goto("/practice#sql");
+  const card = page.locator("article", { has: page.getByRole("heading", { name: "Customers who never ordered" }) });
+  await card.getByLabel("Your query", { exact: true }).fill("SELECT c.name FROM customers c WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id) ORDER BY c.name");
+  await card.getByRole("radio", { name: "Certain" }).check({ force: true });
+  await card.getByRole("button", { name: "Check answer" }).click();
+  await expect(card.getByText("The single row matches, in order.")).toBeVisible({ timeout: 240_000 });
+});
+
+test("a lesson that uses sqlite3 runs in Python", async ({ page }) => {
+  await page.goto("/learn/sql/joins-and-keys");
+  await page.locator(".tp-runner").getByRole("tab", { name: "Python" }).click();
+  await page.waitForTimeout(400);
+  await expect(await runAndWait(page, "Run")).toContainText("Output matches the expected output");
+});
+
+test("an allowlisted third-party package is loaded on demand", async ({ page }) => {
+  await page.goto("/learn/foundations/python-r-idioms");
+  await page.getByLabel(/Python code, editable/).fill("import numpy as np\nprint(int(np.arange(4).sum()))");
+  await runAndWait(page, "Run");
+  await expect(page.locator(".tp-runner__out").first()).toHaveText("6");
+});
+
+// Exercises new and expanded programs in the shipped browser integrations.
+for (const slug of ["git-collaboration", "service-reliability", "causal-identification", "clustering-pca", "cnn-rnn"]) {
+  const topic = curriculum.topics.find((t) => t.slug === slug)!;
+  test(`expanded curriculum: ${slug} runs and tests in Python and R`, async ({ page }) => {
+    await page.goto(`/learn/${topic.domain}/${slug}`);
+    for (const lang of ["Python", "R"] as const) {
+      await page.locator(".tp-runner").getByRole("tab", { name: lang }).click();
+      await expect(await runAndWait(page, "Run")).toContainText("Output matches the expected output");
+      await expect(await runAndWait(page, "Run tests")).toContainText("All tests passed");
+    }
+  });
+}
+
+/** Every paired lesson, both languages, in the browser runtimes (RUNTIME_E2E=all; several minutes). */
+test.describe("all paired lessons", () => {
+  test.skip(process.env.RUNTIME_E2E !== "all", "Set RUNTIME_E2E=all to run every lesson in both runtimes.");
+  for (const t of curriculum.topics.filter((x) => x.implementation)) {
+    test(`${t.id} matches in Python and R`, async ({ page }) => {
+      await page.goto(`/learn/${t.domain}/${t.slug}`);
+      for (const lang of ["Python", "R"] as const) {
+        await page.locator(".tp-runner").getByRole("tab", { name: lang }).click();
+        await page.waitForTimeout(400);
+        await expect(await runAndWait(page, "Run"), `${t.id} ${lang}`).toContainText("Output matches the expected output");
+        await expect(await runAndWait(page, "Run tests"), `${t.id} ${lang} tests`).toContainText("All tests passed");
+      }
+    });
+  }
+});
+
+/** Every coding problem's reference solution passes its tests in Pyodide and webR, and every SQL drill's solution is graded correct (RUNTIME_E2E=all). */
+test.describe("all practice code", () => {
+  test.skip(process.env.RUNTIME_E2E !== "all", "Set RUNTIME_E2E=all to run every coding problem and SQL drill in the browser.");
+  const items = practiceSets.flatMap((s) => s.items);
+  for (const p of items.filter((d) => d.kind === "code")) {
+    test(`coding problem ${p.id} passes in Python and R`, async ({ page }) => {
+      await page.goto("/practice#coding");
+      const card = page.locator(`article[aria-labelledby="${p.id}-title"]`);
+      await card.locator("summary", { hasText: "Solve it in Python or R" }).click();
+      for (const lang of ["Python", "R"] as const) {
+        await card.getByRole("tab", { name: lang }).click();
+        await card.getByLabel(`${lang} solution, editable`).fill(lang === "Python" ? p.python.solution : p.r.solution);
+        await card.getByRole("button", { name: "Run tests" }).click();
+        await expect(card.locator(".tp-runner__verdict"), `${p.id} ${lang}`).toContainText("All tests passed", { timeout: 240_000 });
+      }
+    });
+  }
+  for (const d of items.filter((x) => x.kind === "sql")) {
+    test(`SQL drill ${d.id} accepts its reference solution`, async ({ page }) => {
+      await page.goto("/practice#sql");
+      const card = page.locator(`article[aria-labelledby="${d.id}-title"]`);
+      await card.getByLabel("Your query", { exact: true }).fill(d.solution);
+      await card.getByRole("radio", { name: "Certain" }).check({ force: true });
+      await card.getByRole("button", { name: "Check answer" }).click();
+      await expect(card.locator(".tp-callout--positive"), d.id).toContainText("Correct", { timeout: 240_000 });
+    });
+  }
+});
