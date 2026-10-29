@@ -1,5 +1,7 @@
 # Release verification
 
+This is the original release record. See [Learning Studio release verification](studio-verification.md) for the current content counts and checks.
+
 Verified on 2026-10-28. Scope: the supplied 16-week master build brief and design brief, plus the existing application in PR #1. The curriculum coverage map identifies the lesson for every named concept; it does not claim to contain every possible interview question.
 
 ## Implemented experience

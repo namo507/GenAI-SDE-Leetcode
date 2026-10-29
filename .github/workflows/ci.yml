@@ -70,6 +70,18 @@ jobs:
         run: npx playwright test tests/e2e/runtime.spec.ts
         env:
           RUNTIME_E2E: "1"
+      - run: npm run export
+      - name: Verify the shipped static Learning Studio
+        run: npx playwright test tests/e2e/studio.spec.ts
+        env:
+          STATIC_E2E: "1"
+          PORT: "3102"
+      - name: Verify Python and R from the exported artifact
+        run: npx playwright test tests/e2e/runtime.spec.ts --grep "program output matches and its tests pass"
+        env:
+          STATIC_E2E: "1"
+          RUNTIME_E2E: "1"
+          PORT: "3102"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

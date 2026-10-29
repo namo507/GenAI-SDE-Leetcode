@@ -178,7 +178,7 @@ export function InterviewsView({ loops, topics }: { loops: MockLoop[]; topics: R
         {loops.map((l) => {
           const minutes = l.rounds.reduce((s, r) => s + r.minutes, 0);
           return (
-            <li key={l.id} className="tp-card grid content-start gap-3">
+            <li key={l.id} id={l.id} className="tp-card grid scroll-mt-24 content-start gap-3">
               <h2 className="t-subheading">{l.title}</h2>
               <p className="t-body-sm tp-muted">{l.summary}</p>
               <p className="t-caption tp-muted">

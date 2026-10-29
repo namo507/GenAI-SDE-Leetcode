@@ -19,4 +19,10 @@ export const ROUTES = [
   "/analytics",
   "/glossary",
   "/settings",
+  "/labs",
+  "/learn/foundations/linear-algebra-geometry",
+  "/learn/foundations/derivatives-chain-rule",
+  "/learn/statistics/information-theory",
+  "/learn/statistics/sampling-selection-bias",
+  "/learn/deep-learning/numerical-stability",
 ];

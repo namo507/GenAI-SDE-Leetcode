@@ -156,3 +156,16 @@ Reviewed 2026-10-28 against the [master build brief](briefs/master-build-prompt.
 - Every applicable topic has an ELI5 explanation with an analogy limit and a Senior explanation. Paired fixtures implement the math or a deterministic teaching model where a browser cannot host the real system. PyTorch and Docker examples remain explicitly labelled reference code. No live model provider, distributed training cluster, Kafka broker, Docker daemon, Kubernetes cluster or cloud account is provisioned by the lessons.
 - Source ingestion/OCR, semantic dense retrieval, rerankers and model judges have production explanations, but the runnable fixtures intentionally operate on deterministic extracted text, supplied rankings or explicit proxy checks. The code labels those boundaries instead of presenting fixture output as a real model call.
 - Behavioral and capstone-scoping topics omit runnable code by design. Project briefs and mocks guide the learner's work; completing a page does not demonstrate an implemented capstone or predict hiring outcomes.
+
+
+## Learning Studio expansion, 2026-10-29
+
+The original 16-week concept map remains intact. Five additional complete lessons deepen foundations that later topics rely on:
+
+- [Vector and matrix geometry](https://techprep-os-namo.namit507.chatgpt.site/learn/foundations/linear-algebra-geometry): dot product, norms, cosine, shapes and noncommuting transformations.
+- [Derivatives and the chain rule](https://techprep-os-namo.namit507.chatgpt.site/learn/foundations/derivatives-chain-rule): local sensitivity, multiple derivative paths, finite-difference checks and update limits.
+- [Information theory](https://techprep-os-namo.namit507.chatgpt.site/learn/statistics/information-theory): surprise, entropy, cross-entropy, directed KL, log units, perplexity and scoring limits.
+- [Sampling and selection bias](https://techprep-os-namo.namit507.chatgpt.site/learn/statistics/sampling-selection-bias): target population, sampling frame, nonresponse, support, post-stratification and weight dispersion.
+- [Numerical stability](https://techprep-os-namo.namit507.chatgpt.site/learn/deep-learning/numerical-stability): finite range/precision, max-shift softmax, fused log-softmax, cancellation, clipping and explicit input contracts.
+
+[The Learning Studio](https://techprep-os-namo.namit507.chatgpt.site/labs) links 12 calculated experiments, 24 misconception checks, six role paths and interview-transfer cases to actual lesson IDs. Every lesson has a saved explain-back workspace. [The guide](learning-studio.md) states each model's scope and the distinction between calculated predictions and self-graded speaking practice.

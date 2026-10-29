@@ -13,6 +13,8 @@ import { TableOfContents, type TocItem } from "@/components/learn/TableOfContent
 import { PracticeCard } from "@/components/practice/PracticeCard";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Callout, SectionHeading } from "@/components/ui/primitives";
+import { TeachBack } from "@/components/learn/TeachBack";
+import { labsForTopic } from "@/lib/labs";
 
 type Params = { params: Promise<{ domain: string; slug: string }> };
 
@@ -40,6 +42,7 @@ export default async function LearnPage({ params }: Params) {
   const index = curriculum.topics.indexOf(topic);
   const { prev, next } = neighbors(curriculum.topics, index);
   const impl = topic.implementation;
+  const experiments = labsForTopic(topic.id);
   const terms = glossary.filter((g) => g.topicIds.includes(topic.id)).sort((a, b) => a.term.localeCompare(b.term));
   const toc: TocItem[] = [
     { id: "explanation", label: "Explanation" },
@@ -47,6 +50,8 @@ export default async function LearnPage({ params }: Params) {
     ...(impl ? [{ id: "code", label: "Code in Python and R" }] : []),
     ...(topic.referenceSnippet ? [{ id: "reference-code", label: "Reference code" }] : []),
     { id: "practice", label: "Practice" },
+    { id: "teach-back", label: "Explain it back" },
+    ...(experiments.length ? [{ id: "experiments", label: "Interactive experiments" }] : []),
     ...(terms.length ? [{ id: "key-terms", label: "Key terms" }] : []),
     { id: "references", label: "References" },
   ];
@@ -129,6 +134,8 @@ export default async function LearnPage({ params }: Params) {
           <div id="explanation" className="scroll-mt-24">
             <Explainer topic={topic} />
           </div>
+
+          {experiments.length > 0 && <section aria-labelledby="experiments" className="grid gap-3"><SectionHeading id="experiments" title="Make the concept move">Predict an outcome, change the mechanism and inspect a counterexample before returning to the full implementation.</SectionHeading><ul className="grid gap-3">{experiments.map((lab) => <li key={lab.id}><Link className="tp-card grid gap-2" href={`/labs/${lab.id}`}><h3 className="t-subheading text-brand">{lab.title}</h3><p className="t-body-sm tp-muted">{lab.summary}</p><span className="t-caption">Open experiment · {lab.minutes} min</span></Link></li>)}</ul></section>}
 
           <section aria-labelledby="workflow" className="grid gap-4">
             <SectionHeading id="workflow" title="Workflow animation">
@@ -247,6 +254,8 @@ export default async function LearnPage({ params }: Params) {
               </dl>
             </section>
           )}
+
+          <div id="teach-back" className="scroll-mt-24"><TeachBack topic={topic} /></div>
 
           <section aria-labelledby="references" className="grid gap-3">
             <SectionHeading id="references" title="References" />

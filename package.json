@@ -5,9 +5,9 @@
   "description": "TechPrep OS: a 16-week SDE, data science, ML and GenAI interview preparation dashboard with runnable Python and R lessons.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build-next.mjs",
     "start": "next start",
-    "export": "node scripts/build-tokens.mjs && STATIC_EXPORT=1 next build",
+    "export": "node scripts/build-tokens.mjs && STATIC_EXPORT=1 node scripts/build-next.mjs",
     "tokens": "node scripts/build-tokens.mjs",
     "schema": "tsx scripts/generate-schema.ts",
     "validate": "tsx scripts/validate-content.ts",

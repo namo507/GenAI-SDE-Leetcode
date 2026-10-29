@@ -93,6 +93,8 @@ export function SettingsView() {
     attempts: progress.attempts.length,
     reviews: Object.keys(progress.reviews).length,
     mocks: progress.mocks.length,
+    reflections: Object.keys(progress.reflections).length,
+    experiments: Object.keys(progress.labNotes).length,
   };
 
   return (
@@ -208,7 +210,7 @@ export function SettingsView() {
         </label>
       </Section>
 
-      <Section title="Your data" description={`Stored only in this browser: ${count(counts.days, "day")} logged, ${count(counts.attempts, "practice attempt")}, ${count(counts.reviews, "topic")} in review, ${count(counts.mocks, "mock loop")}.`}>
+      <Section title="Your data" description={`Stored only in this browser: ${count(counts.days, "day")} logged, ${count(counts.attempts, "practice attempt")}, ${count(counts.reviews, "topic")} in review, ${count(counts.mocks, "mock loop")}, ${count(counts.reflections, "explanation note")}, ${count(counts.experiments, "saved experiment")}.`}>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="tp-btn tp-btn--secondary" onClick={exportProgress}>
             <Download className="tp-icon" aria-hidden />

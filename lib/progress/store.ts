@@ -59,6 +59,8 @@ function importProblem(data: unknown, path: PropertyKey[]): string {
     reviews: "the spaced-review cards",
     reviewLog: "the review history",
     mocks: "the mock interview results",
+    reflections: "the explanation notes",
+    labNotes: "the experiment notes",
   };
   const where = section[String(path[0] ?? "")];
   return `${base}: ${where ? `${where} are` : "part of it is"} in an unexpected format. Export again from Settings and import that file.`;
@@ -111,6 +113,14 @@ export function isStorageAvailable() {
 const uid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 export const actions = {
+  saveReflection(topicId: string, value: Omit<Progress["reflections"][string], "updatedAt">) {
+    update((p) => ({ ...p, reflections: { ...p.reflections, [topicId]: { ...value, updatedAt: new Date().toISOString() } } }));
+  },
+
+  saveLabNote(labId: string, value: Omit<Progress["labNotes"][string], "updatedAt">) {
+    update((p) => ({ ...p, labNotes: { ...p.labNotes, [labId]: { ...value, updatedAt: new Date().toISOString() } } }));
+  },
+
   updateSettings(patch: Partial<Settings>) {
     update((p) => ({ ...p, settings: { ...p.settings, ...patch } }));
   },
