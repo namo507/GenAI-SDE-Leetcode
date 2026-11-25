@@ -3,12 +3,14 @@ import { topicHref } from "@/lib/catalog";
 import type { SearchEntry } from "@/lib/search";
 import { curriculum, glossary, practiceSets } from "@/lib/site";
 import { NAV_PAGES } from "@/components/shell/nav";
+import { labs } from "@/lib/labs";
 
 export const dynamic = "force-static";
 
 export function GET() {
   const entries: SearchEntry[] = [
     ...NAV_PAGES.map((p) => ({ kind: "page" as const, title: p.label, href: p.href, meta: p.section, keywords: p.keywords })),
+    ...labs.map((lab) => ({ kind: "page" as const, title: lab.title, href: `/labs/${lab.id}`, meta: "Interactive experiment", keywords: `${lab.summary} ${lab.domain} ${lab.roles.join(" ")}` })),
     ...curriculum.topics.map((t) => ({
       kind: "topic" as const,
       title: t.title,

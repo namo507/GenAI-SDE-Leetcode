@@ -1,9 +1,12 @@
 import { REVIEWED, code, defineTopic, edge, node, step } from "../helpers";
 import type { ExtraWeek } from "./types";
 import { gitCollaboration } from "./git-collaboration";
+import { derivativesChainRule, linearAlgebraGeometry } from "./math-foundations";
 
 export const w01: ExtraWeek = {
   schedule: [
+    { dayId: "w01-d05", topicId: linearAlgebraGeometry.id, tasks: [{ label: "Build vectors, dot products and matrix geometry from a concrete example", minutes: 45 }] },
+    { dayId: "w01-d05", topicId: derivativesChainRule.id, tasks: [{ label: "Trace a small change through the chain rule", minutes: 45 }] },
     { dayId: "w01-d03", topicId: gitCollaboration.id, tasks: [{ label: "Git snapshots, branches and reviewed collaboration", minutes: 30 }, { label: "Run the ancestry model and explain a safe undo", minutes: 15 }] },
     {
       dayId: "w01-d02",
@@ -23,6 +26,8 @@ export const w01: ExtraWeek = {
     },
   ],
   topics: [
+    linearAlgebraGeometry,
+    derivativesChainRule,
     gitCollaboration,
     defineTopic({
       id: "w01-d02-recursion-call-stack",

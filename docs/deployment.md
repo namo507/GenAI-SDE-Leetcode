@@ -26,7 +26,11 @@ npm run export
 
 `npm run fixtures` requires Python 3.10+ with numpy and pandas, and R with testthat. Set `PYTHON_BIN` and `RSCRIPT_BIN` to select those interpreters. Use `R_LIBS_USER` for an R library outside the system installation. CI installs these dependencies explicitly. The runtime browser tests need access to the Pyodide and webR CDNs.
 
-`npm run export` creates `out/`, including every lesson, roadmap day, search index, browser worker and client asset. Turbopack uses `.next/` during both build modes and writes the export to `out/`. Stop production preview servers before exporting, and rebuild normally before using `npm start` again. Build artifacts, test outputs, local runtime libraries and credentials are ignored by Git.
+`npm run export` creates `out/`, including every lesson, roadmap day, search index, browser worker and client asset. The build tools use `.next/` while compiling and write the export to `out/`. Stop production preview servers before exporting, and rebuild normally before using `npm start` again. Build artifacts, test outputs, local runtime libraries and credentials are ignored by Git.
+
+Static exports use Next.js's supported Webpack build path through `scripts/build-next.mjs`. The normal build uses the default Turbopack path. This avoids the observed stale relative-CSS resolution warnings when switching normal/export modes. Semantic token styles load explicitly in the root layout and declare their CSS layer order.
+
+To verify the exact exported files, set `STATIC_E2E=1 PORT=3102` when running Playwright. The dependency-free local QA server serves `out/` with clean HTML routes and asset content types. CI verifies the static studio and real Python/R runtime smoke tests after exporting. It is a preview server, not an application backend or the production host.
 
 ## Publish with Sites
 

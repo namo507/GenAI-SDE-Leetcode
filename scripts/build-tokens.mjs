@@ -56,6 +56,8 @@ const typeClasses = tokens.type.groups
   .join("\n");
 
 const css = `/* Generated from design-system/tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */
+@layer properties, theme, base, components, utilities;
+@layer base {
 :root, [data-theme="${firstTheme}"] {
   color-scheme: light;
 ${block(firstTheme)}
@@ -79,6 +81,7 @@ ${plain}
 ${families}
 }
 ${typeClasses}
+}
 `;
 
 writeFileSync(join(root, "app/tokens.css"), css);

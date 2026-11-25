@@ -72,10 +72,7 @@ export function DashboardView({ catalog }: { catalog: Catalog }) {
             </Link>
           </p>
         </div>
-        <Link href="/topics" className="tp-btn tp-btn--secondary">
-          <Search className="tp-icon" aria-hidden />
-          Browse all topics
-        </Link>
+        <div className="flex flex-wrap gap-2"><Link href="/labs" className="tp-btn tp-btn--primary">Try a concept experiment<ArrowRight className="tp-icon" aria-hidden /></Link><Link href="/topics" className="tp-btn tp-btn--secondary"><Search className="tp-icon" aria-hidden />Browse all topics</Link></div>
       </motion.header>
 
       {!settings.onboarded && (

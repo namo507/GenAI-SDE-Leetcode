@@ -1,8 +1,11 @@
 import { REVIEWED, code, defineTopic, edge, node, step } from "../helpers";
 import type { ExtraWeek } from "./types";
+import { informationTheory, samplingSelectionBias } from "./learning-theory";
 
 export const w05: ExtraWeek = {
   schedule: [
+    { dayId: "w05-d04", topicId: informationTheory.id, tasks: [{ label: "Compare entropy, cross-entropy and directed KL with explicit units", minutes: 50 }] },
+    { dayId: "w05-d05", topicId: samplingSelectionBias.id, tasks: [{ label: "Trace selection, nonresponse and support before weighting", minutes: 50 }] },
     {
       dayId: "w05-d01",
       topicId: "w05-d01-descriptive-stats-clt",
@@ -29,6 +32,8 @@ export const w05: ExtraWeek = {
     },
   ],
   topics: [
+    informationTheory,
+    samplingSelectionBias,
     defineTopic({
       id: "w05-d01-descriptive-stats-clt",
       slug: "descriptive-stats-clt",

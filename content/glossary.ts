@@ -1,5 +1,6 @@
 import { defineTerms } from "./helpers";
 import { glossaryExtra } from "./glossary-extra";
+import { foundationTerms } from "./glossary-foundations";
 
 const baseTerms = defineTerms([
   { slug: "big-o", term: "Big-O notation", domain: "foundations", definition: "An upper bound on how an algorithm's work grows with input size, ignoring constant factors.", seniorNote: "f(n) is O(g(n)) if f(n) <= c g(n) for all n >= n0. Say whether you mean worst, average or amortized case.", topicIds: ["w01-d02-big-o-complexity"], prerequisites: [] },
@@ -78,4 +79,4 @@ const baseTerms = defineTerms([
 ]);
 
 /** Every glossary term: the original set plus the terminology added with the expanded curriculum. */
-export const glossary = [...baseTerms, ...glossaryExtra];
+export const glossary = [...baseTerms, ...glossaryExtra, ...foundationTerms];

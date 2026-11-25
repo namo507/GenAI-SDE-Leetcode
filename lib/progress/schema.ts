@@ -91,6 +91,19 @@ export const ProgressSchema = z.object({
   reviews: z.record(z.string(), ReviewCardSchema),
   reviewLog: z.array(ReviewLogSchema),
   mocks: z.array(MockResultSchema),
+  /** Optional additions default safely when importing an older v1 export. */
+  reflections: z.record(z.string(), z.object({
+    explanation: z.string().max(6000),
+    assumption: z.string().max(3000),
+    counterexample: z.string().max(3000),
+    updatedAt: z.string(),
+  })).default({}),
+  labNotes: z.record(z.string(), z.object({
+    parameters: z.record(z.string(), z.number().finite()),
+    baseline: z.record(z.string(), z.number().finite()).nullable(),
+    note: z.string().max(6000),
+    updatedAt: z.string(),
+  })).default({}),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;
@@ -126,5 +139,7 @@ export function defaultProgress(today: string = todayIso()): Progress {
     reviews: {},
     reviewLog: [],
     mocks: [],
+    reflections: {},
+    labNotes: {},
   };
 }

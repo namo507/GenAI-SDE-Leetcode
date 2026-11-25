@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@xyflow/react/dist/base.css" layer(base);
-@import "./tokens.css" layer(base);
 @import "../design-system/components.css" layer(components);
 
 /* Expose design tokens to Tailwind utilities (bg-surface, text-ink-muted, border-border, ...). */

@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ExternalLink } from "lucide-react";
 import { ROLES, ROLE_LABELS, type Role } from "@/lib/curriculum";
 import type { Project } from "@/lib/content-types";
 import { useClientProgress } from "@/lib/progress/hooks";
 import type { TopicIndex } from "@/components/practice/Drills";
 
+const subscribeHash = (listener: () => void) => { window.addEventListener("hashchange", listener); return () => window.removeEventListener("hashchange", listener); };
+
 export function ProjectsView({ projects, topics }: { projects: Project[]; topics: TopicIndex }) {
   const progress = useClientProgress();
   const [role, setRole] = useState<Role | "all" | null>(null);
   const primary = progress?.settings.onboarded ? progress.settings.roles[0] : undefined;
-  const active = role ?? primary ?? "all";
+  const hash = useSyncExternalStore(subscribeHash, () => window.location.hash.slice(1), () => "");
+  const active = role ?? projects.find((project) => project.id === hash)?.role ?? primary ?? "all";
   const shown = projects.filter((p) => active === "all" || p.role === active);
 
   return (
@@ -32,7 +35,7 @@ export function ProjectsView({ projects, topics }: { projects: Project[]; topics
       </p>
       <ul className="grid gap-6">
         {shown.map((p) => (
-          <li key={p.id}>
+          <li key={p.id} id={p.id} className="scroll-mt-24">
             <article className="tp-card grid gap-4" aria-labelledby={`${p.id}-title`}>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="tp-chip tp-chip--brand">{ROLE_LABELS[p.role]}</span>

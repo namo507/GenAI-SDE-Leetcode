@@ -21,7 +21,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `npx next start -p ${PORT}`,
+    command: process.env.STATIC_E2E ? "node scripts/serve-static.mjs" : `npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -1,8 +1,10 @@
 import { REVIEWED, code, defineTopic, edge, node, step } from "../helpers";
 import type { ExtraWeek } from "./types";
+import { numericalStability } from "./numerical-stability";
 
 export const w09: ExtraWeek = {
   schedule: [
+    { dayId: "w09-d03", topicId: numericalStability.id, tasks: [{ label: "Derive stable softmax and test numerical invariances", minutes: 40 }] },
     {
       dayId: "w09-d05",
       topicId: "w09-d05-training-at-scale",
@@ -13,6 +15,7 @@ export const w09: ExtraWeek = {
     },
   ],
   topics: [
+    numericalStability,
     defineTopic({
       id: "w09-d05-training-at-scale",
       slug: "training-at-scale",

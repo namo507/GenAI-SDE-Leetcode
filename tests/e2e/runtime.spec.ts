@@ -10,6 +10,11 @@ test.describe.configure({ timeout: 300_000 });
 
 async function runAndWait(page: import("@playwright/test").Page, button: string) {
   const runner = page.locator(".tp-runner");
+  // The previous language panel remains mounted during its exit animation.
+  // Wait for the selected editor so its old verdict cannot satisfy this run.
+  const selected = runner.getByRole("tab", { selected: true });
+  const language = (await selected.innerText()).trim();
+  await expect(runner.getByLabel(new RegExp(`${language} code, editable`))).toBeVisible();
   await runner.getByRole("button", { name: button, exact: true }).click();
   const verdict = runner.locator(".tp-runner__verdict");
   await expect(verdict).toBeVisible({ timeout: 240_000 });
@@ -21,7 +26,6 @@ for (const lang of ["Python", "R"] as const) {
     await page.goto("/learn/foundations/python-r-idioms");
     const runner = page.locator(".tp-runner");
     await runner.getByRole("tab", { name: lang }).click();
-    await page.waitForTimeout(400);
     await expect(await runAndWait(page, "Run")).toContainText("Output matches the expected output");
     await expect(await runAndWait(page, "Run tests")).toContainText("All tests passed");
     await expect(runner.locator(".tp-runner__status")).toContainText(lang === "Python" ? "Pyodide" : "webR");
@@ -134,7 +138,6 @@ test("a SQL drill runs in SQLite and is graded", async ({ page }) => {
 test("a lesson that uses sqlite3 runs in Python", async ({ page }) => {
   await page.goto("/learn/sql/joins-and-keys");
   await page.locator(".tp-runner").getByRole("tab", { name: "Python" }).click();
-  await page.waitForTimeout(400);
   await expect(await runAndWait(page, "Run")).toContainText("Output matches the expected output");
 });
 
@@ -146,7 +149,7 @@ test("an allowlisted third-party package is loaded on demand", async ({ page }) 
 });
 
 // Exercises new and expanded programs in the shipped browser integrations.
-for (const slug of ["git-collaboration", "service-reliability", "causal-identification", "clustering-pca", "cnn-rnn"]) {
+for (const slug of ["git-collaboration", "service-reliability", "causal-identification", "clustering-pca", "cnn-rnn", "linear-algebra-geometry", "derivatives-chain-rule", "information-theory", "sampling-selection-bias", "numerical-stability"]) {
   const topic = curriculum.topics.find((t) => t.slug === slug)!;
   test(`expanded curriculum: ${slug} runs and tests in Python and R`, async ({ page }) => {
     await page.goto(`/learn/${topic.domain}/${slug}`);

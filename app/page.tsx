@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { Code, Gauge, Repeat, Workflow } from "lucide-react";
+import { Code, FlaskConical, Gauge, Repeat, Workflow } from "lucide-react";
 import { TRACK_LABELS } from "@/lib/curriculum";
 import { catalog, contentCounts } from "@/lib/site";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 
 const FEATURES = [
+  {
+    icon: FlaskConical,
+    title: "Predict, experiment and explain",
+    body: "Change a threshold, a join, a watermark or an attention mask. Inspect the calculation, compare a counterexample and rehearse the explanation for your target role in the Learning Studio.",
+  },
   {
     icon: Workflow,
     title: "ELI5 and Senior, side by side",
@@ -59,6 +64,7 @@ export default function Home() {
             </Link>{" "}
             without setting anything up.
           </p>
+          <Link className="tp-btn tp-btn--secondary w-fit" href="/labs">Open the Learning Studio</Link>
         </div>
         <Onboarding />
       </section>

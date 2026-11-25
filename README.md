@@ -1,16 +1,18 @@
 # TechPrep OS
 
-A minimal, professional 16-week study dashboard for software engineer, data scientist, data analyst, ML engineer, data engineer and GenAI engineer interviews. Every topic is explained twice (ELI5 and Senior), animated step by step, and implemented in **Python and R that print identical output and run in your browser**, with a line-by-line "Explain like I'm 5" tour of the code.
+A minimal, professional 16-week study dashboard for software engineer, data scientist, data analyst, ML engineer, data engineer and GenAI engineer interviews. Every topic is explained twice (ELI5 and Senior) and animated step by step. The 99 applicable topics include **Python and R programs that print identical output and run in your browser**, with a line-by-line "Explain like I'm 5" tour of the code.
 
 - 16 weeks × 7 days = 112 planned days in chronological order, each with a fixed job: concept map, theory lab, implementation, applied practice, production lens, interview simulation, review
-- 96 topics in 12 categories: foundations, DSA, SQL and data modeling, statistics and experimentation, analytics and BI, machine learning, deep learning, GenAI and LLMs, system design, data engineering, cloud and MLOps, interviews
-- 94 paired Python and R programs, each with unit tests in both languages, a deliberately wrong version and an ELI5 code walkthrough
-- 451 narrated diagram steps (React Flow) with animated workflow pulses, 242 topic practice items
+- 101 topics in 12 categories: foundations, DSA, SQL and data modeling, statistics and experimentation, analytics and BI, machine learning, deep learning, GenAI and LLMs, system design, data engineering, cloud and MLOps, interviews
+- 99 paired Python and R programs, each with unit tests in both languages, a deliberately wrong version and an ELI5 code walkthrough
+- 473 narrated diagram steps (React Flow) with animated workflow pulses, 257 topic practice items
 - 125 drills: 32 LeetCode-style coding problems in Python and R, 20 SQL drills run in SQLite, 12 statistics calculations, 47 concept checks, 8 RAG diagnoses and 6 system design prompts
-- 16 production cases, 12 capstone briefs, 8 timed mock interview loops (one per role plus a warm-up and a cloud deep dive), 249 glossary terms
+- 16 production cases, 12 capstone briefs, 8 timed mock interview loops (one per role plus a warm-up and a cloud deep dive), 260 glossary terms
+- 12 interactive experiments with calculated outcomes, counterfactual comparisons, 24 misconception challenges and six role-specific transfer cases
+- Explain-back workspaces on every lesson, with a speaking timer and saved explanations, assumptions and counterexamples
 - Command palette (Ctrl or Cmd + K), a Topics library filtered by category, role and difficulty, spaced review, confidence calibration and four separate progress measures, all stored only in your browser
 
-[Open the private website](https://techprep-os-namo.namit507.chatgpt.site) · [Concept coverage map](docs/coverage-audit.md) · [Deployment guide](docs/deployment.md)
+[Open the private website](https://techprep-os-namo.namit507.chatgpt.site) · [Concept coverage map](docs/coverage-audit.md) · [Deployment guide](docs/deployment.md) · [Learning Studio guide](docs/learning-studio.md) · [Latest verification](docs/studio-verification.md)
 
 ## Quick start
 
@@ -37,7 +39,7 @@ Production build: `npm run build && npm start`. Every lesson, roadmap day and pr
 | `npm run schema` | Regenerates `docs/curriculum.schema.json` from the Zod contract (a unit test fails if it is stale) |
 | `npm run tokens` | Compiles `design-system/tokens.json` to `app/tokens.css` (runs before every build) |
 | `npm run e2e` | Playwright: axe WCAG 2.2 AA in light and dark, 375/768/1280/2560 px viewports, keyboard and interaction tests |
-| `npm run e2e:runtime` | Playwright tests that download Pyodide and webR and execute code. `RUNTIME_E2E=all` runs all 94 lessons in both languages |
+| `npm run e2e:runtime` | Playwright tests that download Pyodide and webR and execute code. `RUNTIME_E2E=all` runs all 99 lessons in both languages |
 
 Set `PW_CHROMIUM_PATH` to use an existing Chromium instead of `npx playwright install chromium`.
 
@@ -62,7 +64,7 @@ content/{practice,coding-*,concepts,projects,interviews,glossary*}.ts ─┤─>
 
 ## Routes
 
-`/` welcome and onboarding · `/dashboard` today, reviews due, weak areas, progress by category · `/roadmap` and `/roadmap/[dayId]` 112 day pages in five phases · `/topics` library by category and role · `/learn/[domain]/[slug]` 96 lessons · `/practice` spaced review, topic drills, SQL, coding, concepts, statistics, system design and RAG diagnosis · `/projects` capstone briefs · `/interviews` timed loops with self-scoring · `/analytics` metrics, calibration and time against plan · `/glossary` · `/settings`
+`/` welcome and onboarding · `/dashboard` today, reviews due, weak areas, progress by category · `/roadmap` and `/roadmap/[dayId]` 112 day pages in five phases · `/labs` and `/labs/[slug]` interactive experiments and role paths · `/topics` library by category and role · `/learn/[domain]/[slug]` 101 lessons · `/practice` spaced review, topic drills, SQL, coding, concepts, statistics, system design and RAG diagnosis · `/projects` capstone briefs · `/interviews` timed loops with self-scoring · `/analytics` metrics, calibration and time against plan · `/glossary` · `/settings`
 
 ## Adding a topic
 

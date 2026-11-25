@@ -1,4 +1,6 @@
 /* Generated from design-system/tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */
+@layer properties, theme, base, components, utilities;
+@layer base {
 :root, [data-theme="light"] {
   color-scheme: light;
   --bg: #fafafa;
@@ -165,3 +167,4 @@
 .t-label { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 550; letter-spacing: 0.01em; }
 .t-caption { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
 .t-code { font-family: var(--font-mono); font-size: 13.5px; line-height: 22px; font-weight: 400; }
+}
